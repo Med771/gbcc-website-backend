@@ -6,18 +6,9 @@ import backend.website.gbcc.logic.file.dto.FileUploadResponseDto;
 import backend.website.gbcc.logic.file.dto.UploadFileRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
-import org.springframework.http.ContentDisposition;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/file")
@@ -55,8 +46,8 @@ public class FileController {
     }
 
     @DeleteMapping("/{key}")
-    public ResponseEntity<Void> delete(@PathVariable String key) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable String key) {
         fileService.delete(new FileKeyRequestDto(key));
-        return ResponseEntity.noContent().build();
     }
 }
