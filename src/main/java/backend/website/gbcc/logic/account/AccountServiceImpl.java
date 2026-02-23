@@ -3,7 +3,11 @@ package backend.website.gbcc.logic.account;
 import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.AccountSearchRequestDto;
+import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
+import backend.website.gbcc.logic.account.dto.CreateGuestCustomerAccountRequestDto;
+import backend.website.gbcc.logic.account.dto.UpdateCustomerAccountRequestDto;
+import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.AccountRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -35,13 +39,63 @@ public class AccountServiceImpl implements AccountService {
     public AccountResponseDto createAdmin(CreateAdminAccountRequestDto requestDto) {
         String passwordHash = passwordEncoder.encode(requestDto.password());
         CreateAdminAccountRequestDto normalizedRequest = new CreateAdminAccountRequestDto(
-                normalizeRequired(requestDto.name()),
+                normalizeRequired(requestDto.name(), "name"),
                 normalizeEmail(requestDto.email()),
                 requestDto.password()
         );
 
         AccountEntity entity = accountMapper.toAdminEntity(normalizedRequest, passwordHash);
         return accountMapper.toResponse(saveAccount(entity));
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto createGuestCustomer(CreateGuestCustomerAccountRequestDto requestDto) {
+        AccountEntity entity = new AccountEntity();
+        entity.setName(normalizeRequired(requestDto.name(), "name"));
+        entity.setPhone(normalizeRequired(requestDto.phone(), "phone"));
+        entity.setEmail(normalizeEmail(requestDto.email()));
+        entity.setRole(AccountRole.CUSTOMER);
+        entity.setRegistrationStatus(AccountRegistrationStatus.PENDING);
+        entity.setIsPasswordSet(Boolean.FALSE);
+        entity.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        entity.setIsBlocked(Boolean.FALSE);
+        return accountMapper.toResponse(saveAccount(entity));
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto updateCustomer(UUID accountId, UpdateCustomerAccountRequestDto requestDto) {
+        AccountEntity entity = findByIdOrThrow(accountId);
+        ensureCustomerOrThrow(entity);
+        entity.setName(normalizeRequired(requestDto.name(), "name"));
+        entity.setPhone(normalizeRequired(requestDto.phone(), "phone"));
+        entity.setEmail(normalizeEmail(requestDto.email()));
+        return accountMapper.toResponse(saveAccount(entity));
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto activateCustomer(UUID accountId, ActivateCustomerAccountRequestDto requestDto) {
+        AccountEntity entity = findByIdOrThrow(accountId);
+        ensureCustomerOrThrow(entity);
+
+        if (Boolean.TRUE.equals(entity.getIsBlocked())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
+        }
+
+        entity.setPasswordHash(passwordEncoder.encode(requestDto.password()));
+        entity.setIsPasswordSet(Boolean.TRUE);
+        entity.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+        return accountMapper.toResponse(saveAccount(entity));
+    }
+
+    @Override
+    @Transactional
+    public void deleteCustomer(UUID accountId) {
+        AccountEntity entity = findByIdOrThrow(accountId);
+        ensureCustomerOrThrow(entity);
+        accountRepository.delete(entity);
     }
 
     @Override
@@ -142,10 +196,16 @@ public class AccountServiceImpl implements AccountService {
         return email.trim().toLowerCase(Locale.ROOT);
     }
 
-    private String normalizeRequired(String value) {
+    private String normalizeRequired(String value, String fieldName) {
         if (!StringUtils.hasText(value)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name" + " is required");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, fieldName + " is required");
         }
         return value.trim();
+    }
+
+    private void ensureCustomerOrThrow(AccountEntity account) {
+        if (account.getRole() != AccountRole.CUSTOMER) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account is not customer");
+        }
     }
 }

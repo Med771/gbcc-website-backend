@@ -1,7 +1,9 @@
 package backend.website.gbcc.logic.account;
 
 import backend.website.gbcc.model.AccountRole;
+import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.BaseEntity;
+import backend.website.gbcc.model.convector.AccountRegistrationStatusConverter;
 import backend.website.gbcc.model.convector.AccountRoleConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
@@ -30,9 +32,16 @@ public class AccountEntity extends BaseEntity {
     @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
+    @Column(name = "is_password_set", nullable = false)
+    private Boolean isPasswordSet = true;
+
     @Convert(converter = AccountRoleConverter.class)
     @Column(nullable = false)
     private AccountRole role;
+
+    @Convert(converter = AccountRegistrationStatusConverter.class)
+    @Column(name = "registration_status", nullable = false)
+    private AccountRegistrationStatus registrationStatus = AccountRegistrationStatus.ACTIVE;
 
     @Column(name = "is_blocked", nullable = false)
     private Boolean isBlocked = false;

@@ -15,7 +15,9 @@ public interface AccountMapper {
     @Mapping(target = "phone", ignore = true)
     @Mapping(target = "email", source = "requestDto.email")
     @Mapping(target = "passwordHash", source = "passwordHash")
+    @Mapping(target = "isPasswordSet", constant = "true")
     @Mapping(target = "role", expression = "java(AccountRole.ADMIN)")
+    @Mapping(target = "registrationStatus", expression = "java(AccountRegistrationStatus.ACTIVE)")
     @Mapping(target = "isBlocked", constant = "false")
     AccountEntity toAdminEntity(CreateAdminAccountRequestDto requestDto, String passwordHash);
 
@@ -26,7 +28,9 @@ public interface AccountMapper {
     @Mapping(target = "phone", ignore = true)
     @Mapping(target = "email", source = "email")
     @Mapping(target = "passwordHash", source = "passwordHash")
+    @Mapping(target = "isPasswordSet", constant = "true")
     @Mapping(target = "role", expression = "java(AccountRole.OWNER)")
+    @Mapping(target = "registrationStatus", expression = "java(AccountRegistrationStatus.ACTIVE)")
     @Mapping(target = "isBlocked", constant = "false")
     AccountEntity toOwnerEntity(String email, String passwordHash);
 

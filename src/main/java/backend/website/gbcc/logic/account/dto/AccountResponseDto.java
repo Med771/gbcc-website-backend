@@ -1,6 +1,7 @@
 package backend.website.gbcc.logic.account.dto;
 
 import backend.website.gbcc.model.AccountRole;
+import backend.website.gbcc.model.AccountRegistrationStatus;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -11,6 +12,7 @@ public record AccountResponseDto(
         String phone,
         String email,
         AccountRole role,
+        AccountRegistrationStatus registrationStatus,
         Boolean isBlocked,
         Instant createdAt,
         Instant updatedAt
