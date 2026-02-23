@@ -9,5 +9,7 @@ import java.util.UUID;
 public interface ProductPhotoService {
     void attachPhoto(UUID productId, AttachProductPhotoRequestDto requestDto);
 
+    void detachPhotoByFileId(UUID productId, UUID fileId);
+
     Map<UUID, List<UUID>> getPhotoIdsByProductIds(List<UUID> productIds);
 }

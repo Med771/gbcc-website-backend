@@ -58,6 +58,22 @@ public class ProductPhotoServiceImpl implements ProductPhotoService {
     }
 
     @Override
+    @Transactional
+    public void detachPhotoByFileId(UUID productId, UUID fileId) {
+        if (productId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product id must not be empty");
+        }
+        if (fileId == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File id must not be empty");
+        }
+
+        long deletedRows = productPhotoRepository.deleteByProduct_IdAndFileId(productId, fileId);
+        if (deletedRows == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Product photo relation not found");
+        }
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Map<UUID, List<UUID>> getPhotoIdsByProductIds(List<UUID> productIds) {
         if (productIds == null || productIds.isEmpty()) {

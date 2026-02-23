@@ -9,4 +9,6 @@ public interface ProductPhotoRepository extends JpaRepository<ProductPhotoEntity
     boolean existsByProduct_IdAndSortOrder(UUID productId, Integer sortOrder);
 
     List<ProductPhotoEntity> findAllByProduct_IdIn(List<UUID> productIds);
+
+    long deleteByProduct_IdAndFileId(UUID productId, UUID fileId);
 }

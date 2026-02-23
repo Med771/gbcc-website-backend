@@ -18,9 +18,11 @@ public interface FileMapper {
     @Mapping(target = "size", expression = "java(resolveFileSize(requestDto))")
     FileEntity toEntity(UploadFileRequestDto requestDto, String key, String bucket);
 
+    @Mapping(target = "fileId", source = "entity.id")
     @Mapping(target = "mimeType", expression = "java(entity.getMimeType() != null ? entity.getMimeType().getMimeType() : null)")
     FileUploadResponseDto toUploadResponse(FileEntity entity);
 
+    @Mapping(target = "fileId", source = "entity.id")
     @Mapping(target = "resource", source = "resource")
     @Mapping(target = "fileName", source = "entity.fileName")
     @Mapping(target = "mimeType", expression = "java(entity.getMimeType() != null ? entity.getMimeType().getMimeType() : null)")

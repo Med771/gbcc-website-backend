@@ -1,11 +1,15 @@
 package backend.website.gbcc.tool;
 
+import backend.website.gbcc.logic.product.dto.ProductClassResponseDto;
 import backend.website.gbcc.logic.product.productclass.ProductClassEntity;
 import backend.website.gbcc.logic.product.productclass.ProductClassRepository;
 import backend.website.gbcc.tool.parent.TaxonomyNameNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
@@ -19,6 +23,13 @@ public class ProductClassTool {
 
         return productClassRepository.findByNameIgnoreCase(normalized)
                 .orElseGet(() -> saveSafely(normalized));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductClassResponseDto> getClasses() {
+        return productClassRepository.findAllByOrderByNameAsc().stream()
+                .map(entity -> new ProductClassResponseDto(entity.getId(), entity.getName()))
+                .toList();
     }
 
     private ProductClassEntity saveSafely(String name) {
