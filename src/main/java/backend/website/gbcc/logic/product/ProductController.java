@@ -4,7 +4,7 @@ import backend.website.gbcc.logic.product.dto.AttachProductPhotoRequestDto;
 import backend.website.gbcc.logic.product.dto.CreateProductRequestDto;
 import backend.website.gbcc.logic.product.dto.ProductResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
-import backend.website.gbcc.model.PageResponse;
+import backend.website.gbcc.model.dto.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

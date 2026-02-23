@@ -1,4 +1,4 @@
-package backend.website.gbcc.model;
+package backend.website.gbcc.model.error;
 
 import java.time.Instant;
 import java.util.List;

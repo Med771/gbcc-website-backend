@@ -1,4 +1,4 @@
-package backend.website.gbcc.model;
+package backend.website.gbcc.model.dto;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
 package backend.website.gbcc.handler;
 
-import backend.website.gbcc.model.ApiErrorField;
-import backend.website.gbcc.model.ApiErrorResponse;
+import backend.website.gbcc.model.error.ApiErrorField;
+import backend.website.gbcc.model.error.ApiErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
