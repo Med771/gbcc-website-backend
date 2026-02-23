@@ -6,6 +6,7 @@ import backend.website.gbcc.logic.account.AccountEntity;
 import backend.website.gbcc.logic.account.AccountRepository;
 import backend.website.gbcc.logic.auth.dto.AuthLoginRequestDto;
 import backend.website.gbcc.logic.auth.dto.AuthSessionDto;
+import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.AccountRole;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -54,6 +55,8 @@ class AuthServiceImplTest {
         account.setPasswordHash("hash");
         account.setRole(AccountRole.ADMIN);
         account.setIsBlocked(false);
+        account.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+        account.setIsPasswordSet(true);
 
         Instant now = Instant.now();
         Instant accessExp = now.plusSeconds(900);
@@ -87,6 +90,8 @@ class AuthServiceImplTest {
         account.setEmail("admin@mail.com");
         account.setPasswordHash("hash");
         account.setRole(AccountRole.ADMIN);
+        account.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+        account.setIsPasswordSet(true);
 
         when(accountRepository.findByEmailIgnoreCase("admin@mail.com")).thenReturn(Optional.of(account));
         when(passwordEncoder.matches("bad", "hash")).thenReturn(false);
@@ -102,6 +107,8 @@ class AuthServiceImplTest {
         account.setId(UUID.randomUUID());
         account.setRole(AccountRole.ADMIN);
         account.setIsBlocked(false);
+        account.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+        account.setIsPasswordSet(true);
 
         RefreshTokenEntity existing = new RefreshTokenEntity();
         existing.setTokenHash("refresh-hash-old");
@@ -125,5 +132,26 @@ class AuthServiceImplTest {
         assertThat(response.accessToken()).isEqualTo("access-new");
         assertThat(response.refreshToken()).isNotEqualTo("refresh-old");
         verify(refreshTokenRepository).save(existing);
+    }
+
+    @Test
+    void login_shouldThrowForbidden_whenCustomerRegistrationPending() {
+        AccountEntity account = new AccountEntity();
+        account.setEmail("customer@mail.com");
+        account.setPasswordHash("hash");
+        account.setRole(AccountRole.CUSTOMER);
+        account.setIsBlocked(false);
+        account.setRegistrationStatus(AccountRegistrationStatus.PENDING);
+        account.setIsPasswordSet(false);
+
+        when(accountRepository.findByEmailIgnoreCase("customer@mail.com")).thenReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> authService.login(new AuthLoginRequestDto("customer@mail.com", "Password123")))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> {
+                    ResponseStatusException ex = (ResponseStatusException) error;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(403);
+                    assertThat(ex.getReason()).isEqualTo("Account registration is not completed");
+                });
     }
 }
