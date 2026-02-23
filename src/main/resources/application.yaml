@@ -27,6 +27,10 @@ spring:
 app:
   jwt:
     secret: secret
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 30
+    cookie-secure: false
+    cookie-same-site: Lax
   account:
     owner:
       email: email
