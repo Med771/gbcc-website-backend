@@ -4,6 +4,7 @@ import backend.website.gbcc.logic.product.dto.AttachProductPhotoRequestDto;
 import backend.website.gbcc.logic.product.dto.CreateProductRequestDto;
 import backend.website.gbcc.logic.product.dto.ProductResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
+import backend.website.gbcc.model.PageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -37,7 +38,7 @@ public class ProductController {
     }
 
     @GetMapping
-    public Page<ProductResponseDto> search(
+    public PageResponse<ProductResponseDto> search(
             @RequestParam(required = false) String className,
             @RequestParam(required = false) String seriesName,
             @RequestParam(required = false) String typeName,
@@ -56,7 +57,14 @@ public class ProductController {
                 maxPrice,
                 isActive
         );
-        return productService.search(requestDto, pageable);
+        Page<ProductResponseDto> result = productService.search(requestDto, pageable);
+        return new PageResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     @PostMapping("/{productId}/photos")
