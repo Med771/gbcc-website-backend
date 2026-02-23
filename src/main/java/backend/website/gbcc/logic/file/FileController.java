@@ -4,27 +4,31 @@ import backend.website.gbcc.logic.file.dto.FileDownloadResponseDto;
 import backend.website.gbcc.logic.file.dto.FileKeyRequestDto;
 import backend.website.gbcc.logic.file.dto.FileUploadResponseDto;
 import backend.website.gbcc.logic.file.dto.UploadFileRequestDto;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/file")
 @RequiredArgsConstructor
+@Validated
 public class FileController {
 
     private final FileService fileService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<FileUploadResponseDto> upload(@ModelAttribute UploadFileRequestDto requestDto) {
+    public ResponseEntity<FileUploadResponseDto> upload(@Valid @ModelAttribute UploadFileRequestDto requestDto) {
         FileUploadResponseDto response = fileService.upload(requestDto);
         return ResponseEntity.status(201).body(response);
     }
 
     @GetMapping("/{key}")
-    public ResponseEntity<Resource> download(@PathVariable String key) {
+    public ResponseEntity<Resource> download(@PathVariable @NotBlank String key) {
         FileDownloadResponseDto response = fileService.download(new FileKeyRequestDto(key));
         Resource resource = response.getResource();
 
@@ -47,7 +51,7 @@ public class FileController {
 
     @DeleteMapping("/{key}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable String key) {
+    public void delete(@PathVariable @NotBlank String key) {
         fileService.delete(new FileKeyRequestDto(key));
     }
 }
