@@ -3,11 +3,14 @@ package backend.website.gbcc.logic.file;
 import backend.website.gbcc.config.property.FileProperty;
 import backend.website.gbcc.logic.file.dto.FileDownloadResponseDto;
 import backend.website.gbcc.logic.file.dto.FileKeyRequestDto;
+import backend.website.gbcc.logic.file.dto.FileSearchRequestDto;
 import backend.website.gbcc.logic.file.dto.FileUploadResponseDto;
 import backend.website.gbcc.logic.file.dto.UploadFileRequestDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +61,17 @@ public class LocalStorageService implements FileService {
         }
 
         return fileMapper.toDownloadResponse(entity, resource);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FileUploadResponseDto> search(FileSearchRequestDto requestDto, Pageable pageable) {
+        FileSearchRequestDto safeRequest = requestDto != null
+                ? requestDto
+                : new FileSearchRequestDto(null, null, null);
+
+        return fileRepository.findAll(FileSpecification.byFilter(safeRequest), pageable)
+                .map(fileMapper::toUploadResponse);
     }
 
     @Override

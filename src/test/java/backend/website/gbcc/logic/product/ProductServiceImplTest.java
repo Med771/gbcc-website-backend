@@ -5,7 +5,6 @@ import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
 import backend.website.gbcc.logic.product.dto.UpdateProductRequestDto;
 import backend.website.gbcc.logic.product.productclass.ProductClassEntity;
-import backend.website.gbcc.logic.product.productclass.ProductClassRepository;
 import backend.website.gbcc.logic.product.productphoto.ProductPhotoService;
 import backend.website.gbcc.logic.product.productseries.ProductSeriesEntity;
 import backend.website.gbcc.tool.ProductClassTool;
@@ -50,9 +49,6 @@ class ProductServiceImplTest {
 
     @Mock
     private ProductTypeTool productTypeTool;
-
-    @Mock
-    private ProductClassRepository productClassRepository;
 
     @InjectMocks
     private ProductServiceImpl productService;
@@ -108,22 +104,17 @@ class ProductServiceImplTest {
 
     @Test
     void getClasses_shouldReturnSortedResponse() {
-        ProductClassEntity classA = new ProductClassEntity();
-        classA.setId(UUID.randomUUID());
-        classA.setName("A");
+        ProductClassResponseDto classA = new ProductClassResponseDto(UUID.randomUUID(), "A");
+        ProductClassResponseDto classB = new ProductClassResponseDto(UUID.randomUUID(), "B");
 
-        ProductClassEntity classB = new ProductClassEntity();
-        classB.setId(UUID.randomUUID());
-        classB.setName("B");
-
-        when(productClassRepository.findAllByOrderByNameAsc()).thenReturn(List.of(classA, classB));
+        when(productClassTool.getClasses()).thenReturn(List.of(classA, classB));
 
         List<ProductClassResponseDto> result = productService.getClasses();
 
         assertThat(result).hasSize(2);
-        assertThat(result.get(0).id()).isEqualTo(classA.getId());
+        assertThat(result.get(0).id()).isEqualTo(classA.id());
         assertThat(result.get(0).name()).isEqualTo("A");
-        assertThat(result.get(1).id()).isEqualTo(classB.getId());
+        assertThat(result.get(1).id()).isEqualTo(classB.id());
         assertThat(result.get(1).name()).isEqualTo("B");
     }
 

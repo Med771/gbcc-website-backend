@@ -2,13 +2,17 @@ package backend.website.gbcc.logic.file;
 
 import backend.website.gbcc.logic.file.dto.FileDownloadResponseDto;
 import backend.website.gbcc.logic.file.dto.FileKeyRequestDto;
+import backend.website.gbcc.logic.file.dto.FileSearchRequestDto;
 import backend.website.gbcc.logic.file.dto.FileUploadResponseDto;
 import backend.website.gbcc.logic.file.dto.UploadFileRequestDto;
+import backend.website.gbcc.model.dto.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.*;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
@@ -29,6 +33,24 @@ public class FileController {
     public ResponseEntity<FileUploadResponseDto> upload(@Valid @ModelAttribute UploadFileRequestDto requestDto) {
         FileUploadResponseDto response = fileService.upload(requestDto);
         return ResponseEntity.status(201).body(response);
+    }
+
+    @GetMapping
+    public PageResponse<FileUploadResponseDto> search(
+            @RequestParam(required = false) String key,
+            @RequestParam(required = false) String fileName,
+            @RequestParam(required = false) String bucket,
+            Pageable pageable
+    ) {
+        FileSearchRequestDto requestDto = new FileSearchRequestDto(key, fileName, bucket);
+        Page<FileUploadResponseDto> result = fileService.search(requestDto, pageable);
+        return new PageResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages()
+        );
     }
 
     @GetMapping("/{key}")
