@@ -1,6 +1,7 @@
-package backend.website.gbcc.logic.account;
+package backend.website.gbcc.config.initializer;
 
 import backend.website.gbcc.config.property.AccountProperty;
+import backend.website.gbcc.logic.account.AccountService;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.ApplicationArguments;
