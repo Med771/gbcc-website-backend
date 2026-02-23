@@ -21,6 +21,25 @@ spring:
 
   flyway:
     enabled: true
-    baseline-on-migrate: true
     locations: classpath:db/migration
     out-of-order: true
+
+app:
+  file:
+    bucket: storage
+
+  swagger:
+    title: "GBCC API"
+    description: "Документация API"
+    version: "0.1.0"
+
+    servers:
+      - url: "http://localhost:8080"
+        description: "Local Dev Server"
+
+logging:
+  level:
+    backend.website.gbcc: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN

@@ -1,4 +1,4 @@
-package com.example.gbccwebsitebackend;
+package backend.website.gbcc;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
