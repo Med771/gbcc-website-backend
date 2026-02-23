@@ -11,4 +11,6 @@ public class JwtProperty {
     private String secret;
     private long accessTokenTtlMinutes = 15;
     private long refreshTokenTtlDays = 30;
+    private boolean cookieSecure = false;
+    private String cookieSameSite = "Lax";
 }

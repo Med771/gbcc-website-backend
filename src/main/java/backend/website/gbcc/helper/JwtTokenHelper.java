@@ -1,6 +1,7 @@
 package backend.website.gbcc.helper;
 
 import backend.website.gbcc.config.property.JwtProperty;
+import backend.website.gbcc.model.AccountRole;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -9,6 +10,10 @@ import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtTokenHelper {
@@ -25,6 +30,27 @@ public class JwtTokenHelper {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    public String createAccessToken(UUID accountId, AccountRole role) {
+        Instant now = Instant.now();
+        Instant expiresAt = getAccessTokenExpiresAt(now);
+
+        return Jwts.builder()
+                .subject(accountId.toString())
+                .claim("role", role.name())
+                .issuedAt(Date.from(now))
+                .expiration(Date.from(expiresAt))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    public Instant getAccessTokenExpiresAt(Instant now) {
+        return now.plus(jwtProperty.getAccessTokenTtlMinutes(), ChronoUnit.MINUTES);
+    }
+
+    public Instant getRefreshTokenExpiresAt(Instant now) {
+        return now.plus(jwtProperty.getRefreshTokenTtlDays(), ChronoUnit.DAYS);
     }
 
     private SecretKey getSigningKey() {
