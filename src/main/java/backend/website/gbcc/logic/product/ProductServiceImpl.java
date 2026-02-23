@@ -14,7 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collections;
@@ -39,8 +38,6 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponseDto create(CreateProductRequestDto requestDto) {
-        validateCreateRequest(requestDto);
-
         var productClass = productClassTool.getOrCreate(requestDto.className());
         var productSeries = productSeriesTool.getOrCreate(requestDto.seriesName());
         var productType = productTypeTool.getOrCreate(requestDto.typeName());
@@ -56,6 +53,7 @@ public class ProductServiceImpl implements ProductService {
         ProductSearchRequestDto safeRequest = requestDto != null
                 ? requestDto
                 : new ProductSearchRequestDto(null, null, null, null, null, null, null);
+        validateSearchRequest(safeRequest);
 
         Page<ProductEntity> products = productRepository.findAll(ProductSpecification.byFilter(safeRequest), pageable);
         List<UUID> productIds = products.getContent().stream()
@@ -74,24 +72,10 @@ public class ProductServiceImpl implements ProductService {
         productPhotoService.attachPhoto(productId, requestDto);
     }
 
-    private void validateCreateRequest(CreateProductRequestDto requestDto) {
-        if (requestDto == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Request body is required");
-        }
-        if (!StringUtils.hasText(requestDto.className())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Class name is required");
-        }
-        if (!StringUtils.hasText(requestDto.brand())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Brand is required");
-        }
-        if (requestDto.heightMm() == null || requestDto.widthMm() == null || requestDto.lengthMm() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Dimensions are required");
-        }
-        if (requestDto.weightKg() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Weight is required");
-        }
-        if (requestDto.price() == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Price is required");
+    private void validateSearchRequest(ProductSearchRequestDto requestDto) {
+        if (requestDto.minPrice() != null && requestDto.maxPrice() != null
+                && requestDto.minPrice().compareTo(requestDto.maxPrice()) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "minPrice must be less than or equal to maxPrice");
         }
     }
 }

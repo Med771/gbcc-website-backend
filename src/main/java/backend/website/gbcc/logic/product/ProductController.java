@@ -6,6 +6,7 @@ import backend.website.gbcc.logic.product.dto.ProductResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
 import backend.website.gbcc.model.dto.PageResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.DecimalMin;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -43,8 +44,12 @@ public class ProductController {
             @RequestParam(required = false) String seriesName,
             @RequestParam(required = false) String typeName,
             @RequestParam(required = false) String brand,
-            @RequestParam(required = false) BigDecimal minPrice,
-            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(required = false)
+            @DecimalMin(value = "0.0", message = "minPrice must be greater or equal to 0")
+            BigDecimal minPrice,
+            @RequestParam(required = false)
+            @DecimalMin(value = "0.0", message = "maxPrice must be greater or equal to 0")
+            BigDecimal maxPrice,
             @RequestParam(required = false) Boolean isActive,
             Pageable pageable
     ) {

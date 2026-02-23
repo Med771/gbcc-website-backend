@@ -6,6 +6,7 @@ import backend.website.gbcc.logic.file.dto.FileUploadResponseDto;
 import backend.website.gbcc.logic.file.dto.UploadFileRequestDto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
@@ -19,6 +20,9 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class FileController {
 
+    private static final String UUID_PATTERN =
+            "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
+
     private final FileService fileService;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -28,7 +32,12 @@ public class FileController {
     }
 
     @GetMapping("/{key}")
-    public ResponseEntity<Resource> download(@PathVariable @NotBlank String key) {
+    public ResponseEntity<Resource> download(
+            @PathVariable
+            @NotBlank(message = "key is required")
+            @Pattern(regexp = UUID_PATTERN, message = "key must be a valid UUID")
+            String key
+    ) {
         FileDownloadResponseDto response = fileService.download(new FileKeyRequestDto(key));
         Resource resource = response.getResource();
 
@@ -51,7 +60,12 @@ public class FileController {
 
     @DeleteMapping("/{key}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable @NotBlank String key) {
+    public void delete(
+            @PathVariable
+            @NotBlank(message = "key is required")
+            @Pattern(regexp = UUID_PATTERN, message = "key must be a valid UUID")
+            String key
+    ) {
         fileService.delete(new FileKeyRequestDto(key));
     }
 }
