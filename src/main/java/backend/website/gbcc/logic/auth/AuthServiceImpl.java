@@ -6,6 +6,7 @@ import backend.website.gbcc.logic.account.AccountEntity;
 import backend.website.gbcc.logic.account.AccountRepository;
 import backend.website.gbcc.logic.auth.dto.AuthLoginRequestDto;
 import backend.website.gbcc.logic.auth.dto.AuthSessionDto;
+import backend.website.gbcc.model.AccountRegistrationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,6 +39,11 @@ public class AuthServiceImpl implements AuthService {
 
         if (Boolean.TRUE.equals(account.getIsBlocked())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
+        }
+
+        if (account.getRegistrationStatus() != AccountRegistrationStatus.ACTIVE
+                || !Boolean.TRUE.equals(account.getIsPasswordSet())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account registration is not completed");
         }
 
         if (!passwordEncoder.matches(requestDto.password(), account.getPasswordHash())) {
