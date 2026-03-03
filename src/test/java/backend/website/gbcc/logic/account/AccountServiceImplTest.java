@@ -4,7 +4,7 @@ import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
-import backend.website.gbcc.logic.account.dto.CreateGuestCustomerAccountRequestDto;
+import backend.website.gbcc.logic.account.dto.RegisterCustomerAccountRequestDto;
 import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.AccountRole;
 import org.junit.jupiter.api.Test;
@@ -187,11 +187,12 @@ class AccountServiceImplTest {
     }
 
     @Test
-    void createGuestCustomer_shouldCreatePendingCustomerWithoutPasswordAccess() {
-        CreateGuestCustomerAccountRequestDto request = new CreateGuestCustomerAccountRequestDto(
+    void registerCustomer_shouldCreateActiveCustomerWithPasswordAccess() {
+        RegisterCustomerAccountRequestDto request = new RegisterCustomerAccountRequestDto(
                 "Customer",
                 "+123456789",
-                "CUSTOMER@mail.com"
+                "CUSTOMER@mail.com",
+                "Password123"
         );
         AccountEntity savedEntity = new AccountEntity();
         savedEntity.setId(UUID.randomUUID());
@@ -199,8 +200,8 @@ class AccountServiceImplTest {
         savedEntity.setPhone("+123456789");
         savedEntity.setEmail("customer@mail.com");
         savedEntity.setRole(AccountRole.CUSTOMER);
-        savedEntity.setRegistrationStatus(AccountRegistrationStatus.PENDING);
-        savedEntity.setIsPasswordSet(false);
+        savedEntity.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+        savedEntity.setIsPasswordSet(true);
 
         AccountResponseDto responseDto = new AccountResponseDto(
                 savedEntity.getId(),
@@ -218,10 +219,10 @@ class AccountServiceImplTest {
         when(accountMapper.toResponse(savedEntity)).thenReturn(responseDto);
         when(passwordEncoder.encode(org.mockito.ArgumentMatchers.anyString())).thenReturn("$2a$hash");
 
-        AccountResponseDto result = accountService.createGuestCustomer(request);
+        AccountResponseDto result = accountService.registerCustomer(request);
 
         assertThat(result.role()).isEqualTo(AccountRole.CUSTOMER);
-        assertThat(result.registrationStatus()).isEqualTo(AccountRegistrationStatus.PENDING);
+        assertThat(result.registrationStatus()).isEqualTo(AccountRegistrationStatus.ACTIVE);
         assertThat(result.email()).isEqualTo("customer@mail.com");
     }
 

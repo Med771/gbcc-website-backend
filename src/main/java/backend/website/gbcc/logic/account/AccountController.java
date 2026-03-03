@@ -4,7 +4,7 @@ import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.AccountSearchRequestDto;
 import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
-import backend.website.gbcc.logic.account.dto.CreateGuestCustomerAccountRequestDto;
+import backend.website.gbcc.logic.account.dto.RegisterCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.UpdateCustomerAccountRequestDto;
 import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.dto.PageResponse;
@@ -42,10 +42,10 @@ public class AccountController {
         return accountService.createAdmin(requestDto);
     }
 
-    @PostMapping("/customer/guest")
+    @PostMapping("/customer/register")
     @ResponseStatus(HttpStatus.CREATED)
-    public AccountResponseDto createGuestCustomer(@Valid @RequestBody CreateGuestCustomerAccountRequestDto requestDto) {
-        return accountService.createGuestCustomer(requestDto);
+    public AccountResponseDto registerCustomer(@Valid @RequestBody RegisterCustomerAccountRequestDto requestDto) {
+        return accountService.registerCustomer(requestDto);
     }
 
     @PutMapping("/customer/{accountId}")

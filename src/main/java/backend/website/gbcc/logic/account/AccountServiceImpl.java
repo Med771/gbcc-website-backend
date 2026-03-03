@@ -5,7 +5,7 @@ import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.AccountSearchRequestDto;
 import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
-import backend.website.gbcc.logic.account.dto.CreateGuestCustomerAccountRequestDto;
+import backend.website.gbcc.logic.account.dto.RegisterCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.UpdateCustomerAccountRequestDto;
 import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.AccountRole;
@@ -50,15 +50,15 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     @Transactional
-    public AccountResponseDto createGuestCustomer(CreateGuestCustomerAccountRequestDto requestDto) {
+    public AccountResponseDto registerCustomer(RegisterCustomerAccountRequestDto requestDto) {
         AccountEntity entity = new AccountEntity();
         entity.setName(normalizeRequired(requestDto.name(), "name"));
         entity.setPhone(normalizeRequired(requestDto.phone(), "phone"));
         entity.setEmail(normalizeEmail(requestDto.email()));
         entity.setRole(AccountRole.CUSTOMER);
-        entity.setRegistrationStatus(AccountRegistrationStatus.PENDING);
-        entity.setIsPasswordSet(Boolean.FALSE);
-        entity.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+        entity.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+        entity.setIsPasswordSet(Boolean.TRUE);
+        entity.setPasswordHash(passwordEncoder.encode(requestDto.password()));
         entity.setIsBlocked(Boolean.FALSE);
         return accountMapper.toResponse(saveAccount(entity));
     }
