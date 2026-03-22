@@ -47,6 +47,15 @@ app:
       - url: "http://localhost:8080"
         description: "Local Dev Server"
 
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
+
 logging:
   level:
     backend.website.gbcc: DEBUG

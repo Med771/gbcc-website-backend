@@ -65,6 +65,9 @@ class AccountServiceImplTest {
         AccountResponseDto responseDto = new AccountResponseDto(
                 savedEntity.getId(),
                 "Admin",
+                "",
+                null,
+                "Admin",
                 null,
                 "test@mail.com",
                 AccountRole.ADMIN,
@@ -190,13 +193,17 @@ class AccountServiceImplTest {
     void registerCustomer_shouldCreateActiveCustomerWithPasswordAccess() {
         RegisterCustomerAccountRequestDto request = new RegisterCustomerAccountRequestDto(
                 "Customer",
+                "Customer",
+                null,
                 "+123456789",
                 "CUSTOMER@mail.com",
                 "Password123"
         );
         AccountEntity savedEntity = new AccountEntity();
         savedEntity.setId(UUID.randomUUID());
-        savedEntity.setName("Customer");
+        savedEntity.setFirstName("Customer");
+        savedEntity.setLastName("Customer");
+        savedEntity.setName("Customer Customer");
         savedEntity.setPhone("+123456789");
         savedEntity.setEmail("customer@mail.com");
         savedEntity.setRole(AccountRole.CUSTOMER);
@@ -205,6 +212,9 @@ class AccountServiceImplTest {
 
         AccountResponseDto responseDto = new AccountResponseDto(
                 savedEntity.getId(),
+                savedEntity.getFirstName(),
+                savedEntity.getLastName(),
+                null,
                 savedEntity.getName(),
                 savedEntity.getPhone(),
                 savedEntity.getEmail(),
@@ -238,6 +248,9 @@ class AccountServiceImplTest {
 
         AccountResponseDto responseDto = new AccountResponseDto(
                 accountId,
+                "Customer",
+                "",
+                null,
                 "Customer",
                 "+123456789",
                 "customer@mail.com",

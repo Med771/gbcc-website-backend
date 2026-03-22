@@ -45,6 +45,7 @@ public class AccountServiceImpl implements AccountService {
         );
 
         AccountEntity entity = accountMapper.toAdminEntity(normalizedRequest, passwordHash);
+        AccountProfileNames.syncLegacyNameField(entity);
         return accountMapper.toResponse(saveAccount(entity));
     }
 
@@ -52,7 +53,10 @@ public class AccountServiceImpl implements AccountService {
     @Transactional
     public AccountResponseDto registerCustomer(RegisterCustomerAccountRequestDto requestDto) {
         AccountEntity entity = new AccountEntity();
-        entity.setName(normalizeRequired(requestDto.name(), "name"));
+        entity.setFirstName(normalizeRequired(requestDto.firstName(), "firstName"));
+        entity.setLastName(normalizeRequired(requestDto.lastName(), "lastName"));
+        entity.setPatronymic(normalizeOptionalPatronymic(requestDto.patronymic()));
+        AccountProfileNames.syncLegacyNameField(entity);
         entity.setPhone(normalizeRequired(requestDto.phone(), "phone"));
         entity.setEmail(normalizeEmail(requestDto.email()));
         entity.setRole(AccountRole.CUSTOMER);
@@ -66,12 +70,40 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public AccountResponseDto updateCustomer(UUID accountId, UpdateCustomerAccountRequestDto requestDto) {
+        UUID requesterId = securityContextHelper.getCurrentAccountIdOrThrow();
+        AccountEntity requester = findByIdOrThrow(requesterId);
+        if (requester.getRole() == AccountRole.CUSTOMER && !requesterId.equals(accountId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+
         AccountEntity entity = findByIdOrThrow(accountId);
         ensureCustomerOrThrow(entity);
-        entity.setName(normalizeRequired(requestDto.name(), "name"));
+        entity.setFirstName(normalizeRequired(requestDto.firstName(), "firstName"));
+        entity.setLastName(normalizeRequired(requestDto.lastName(), "lastName"));
+        entity.setPatronymic(normalizeOptionalPatronymic(requestDto.patronymic()));
+        AccountProfileNames.syncLegacyNameField(entity);
         entity.setPhone(normalizeRequired(requestDto.phone(), "phone"));
         entity.setEmail(normalizeEmail(requestDto.email()));
+        if (StringUtils.hasText(requestDto.password())) {
+            if (requestDto.password().length() < 8) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "password must contain at least 8 characters");
+            }
+            entity.setPasswordHash(passwordEncoder.encode(requestDto.password()));
+            entity.setIsPasswordSet(Boolean.TRUE);
+        }
         return accountMapper.toResponse(saveAccount(entity));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountResponseDto getMyProfile() {
+        return getById(securityContextHelper.getCurrentAccountIdOrThrow());
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto updateMyProfile(UpdateCustomerAccountRequestDto requestDto) {
+        return updateCustomer(securityContextHelper.getCurrentAccountIdOrThrow(), requestDto);
     }
 
     @Override
@@ -112,6 +144,7 @@ public class AccountServiceImpl implements AccountService {
         String passwordHash = passwordEncoder.encode(rawPassword);
 
         AccountEntity entity = accountMapper.toOwnerEntity(normalizedEmail, passwordHash);
+        AccountProfileNames.syncLegacyNameField(entity);
         saveAccount(entity);
     }
 
@@ -176,6 +209,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     private void validateReadAccess(AccountEntity requester, AccountEntity target) {
+        if (requester.getRole() == AccountRole.CUSTOMER) {
+            if (!target.getId().equals(requester.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+            }
+            return;
+        }
+
         if (requester.getRole() != AccountRole.ADMIN) {
             return;
         }
@@ -207,5 +247,13 @@ public class AccountServiceImpl implements AccountService {
         if (account.getRole() != AccountRole.CUSTOMER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account is not customer");
         }
+    }
+
+    private String normalizeOptionalPatronymic(String patronymic) {
+        if (!StringUtils.hasText(patronymic)) {
+            return null;
+        }
+        String t = patronymic.trim();
+        return t.length() > 255 ? t.substring(0, 255) : t;
     }
 }

@@ -1,10 +1,12 @@
 package backend.website.gbcc.logic.product;
 
+import backend.website.gbcc.logic.product.dto.GroupedCatalogSearchResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductClassResponseDto;
 import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
 import backend.website.gbcc.logic.product.dto.UpdateProductRequestDto;
 import backend.website.gbcc.logic.product.productclass.ProductClassEntity;
+import backend.website.gbcc.logic.product.productclass.ProductClassRepository;
 import backend.website.gbcc.logic.product.productphoto.ProductPhotoService;
 import backend.website.gbcc.logic.product.productseries.ProductSeriesEntity;
 import backend.website.gbcc.tool.ProductClassTool;
@@ -26,7 +28,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +38,9 @@ class ProductServiceImplTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private ProductClassRepository productClassRepository;
 
     @Mock
     private ProductPhotoService productPhotoService;
@@ -54,14 +61,33 @@ class ProductServiceImplTest {
     private ProductServiceImpl productService;
 
     @Test
+    void searchGrouped_returnsEmpty_whenQueryBlankWithoutCallingRepositories() {
+        GroupedCatalogSearchResponseDto result = productService.searchGrouped("   ", 5, 10, true);
+
+        assertThat(result.totalCategoryCount()).isZero();
+        assertThat(result.totalProductCount()).isZero();
+        assertThat(result.totalCount()).isZero();
+        assertThat(result.categories()).isEmpty();
+        assertThat(result.products()).isEmpty();
+        verifyNoInteractions(productClassRepository);
+        verifyNoInteractions(productRepository);
+    }
+
+    @Test
     void search_shouldThrowBadRequest_whenMinPriceGreaterThanMaxPrice() {
         ProductSearchRequestDto request = new ProductSearchRequestDto(
                 null,
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
                 new BigDecimal("100.00"),
                 new BigDecimal("10.00"),
+                null,
+                null,
                 null
         );
 
@@ -75,6 +101,33 @@ class ProductServiceImplTest {
     }
 
     @Test
+    void search_shouldThrowBadRequest_whenMinHeightGreaterThanMaxHeight() {
+        ProductSearchRequestDto request = new ProductSearchRequestDto(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                3000,
+                2000,
+                null
+        );
+
+        assertThatThrownBy(() -> productService.search(request, PageRequest.of(0, 20)))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> {
+                    ResponseStatusException ex = (ResponseStatusException) error;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(BAD_REQUEST.value());
+                    assertThat(ex.getReason()).isEqualTo("minHeightMm must be less than or equal to maxHeightMm");
+                });
+    }
+
+    @Test
     void update_shouldThrowNotFound_whenProductMissing() {
         UUID productId = UUID.randomUUID();
         UpdateProductRequestDto request = new UpdateProductRequestDto(
@@ -83,11 +136,17 @@ class ProductServiceImplTest {
                 null,
                 "Brand A",
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 100,
                 100,
                 100,
                 new BigDecimal("1.000"),
                 new BigDecimal("10.00"),
+                new BigDecimal("0.00"),
                 true
         );
 
@@ -122,7 +181,8 @@ class ProductServiceImplTest {
     void patch_shouldThrowNotFound_whenProductMissing() {
         UUID productId = UUID.randomUUID();
         PatchProductRequestDto request = new PatchProductRequestDto(
-                null, null, null, null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, null, null
         );
 
         when(productRepository.findById(productId)).thenReturn(java.util.Optional.empty());
@@ -173,7 +233,13 @@ class ProductServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 new BigDecimal("99.99"),
+                new BigDecimal("15.00"),
                 false
         );
 
@@ -185,7 +251,9 @@ class ProductServiceImplTest {
         when(productMapper.toResponse(product, java.util.Collections.emptyList()))
                 .thenReturn(new backend.website.gbcc.logic.product.dto.ProductResponseDto(
                         productId, "New Class", "Series A", null, "New Brand", null,
+                        null, null, 0, null, null, 0,
                         100, 100, 100, new BigDecimal("1.000"), new BigDecimal("99.99"),
+                        new BigDecimal("15.00"), new BigDecimal("84.99"),
                         false, java.util.Collections.emptyList(), null, null
                 ));
 
@@ -196,6 +264,7 @@ class ProductServiceImplTest {
         assertThat(product.getBrand()).isEqualTo("New Brand");
         assertThat(product.getDescription()).isNull();
         assertThat(product.getPrice()).isEqualByComparingTo("99.99");
+        assertThat(product.getDiscountPercent()).isEqualByComparingTo("15.00");
         assertThat(product.getIsActive()).isFalse();
         assertThat(product.getHeightMm()).isEqualTo(100);
         verify(productRepository).save(product);
@@ -210,7 +279,8 @@ class ProductServiceImplTest {
         when(productRepository.findById(productId)).thenReturn(java.util.Optional.of(product));
 
         PatchProductRequestDto request = new PatchProductRequestDto(
-                null, null, null, "   ", null, null, null, null, null, null, null
+                null, null, null, "   ", null, null, null, null, null, null,
+                null, null, null, null, null, null, null
         );
 
         assertThatThrownBy(() -> productService.patch(productId, request))
@@ -220,5 +290,29 @@ class ProductServiceImplTest {
                     assertThat(ex.getStatusCode().value()).isEqualTo(BAD_REQUEST.value());
                     assertThat(ex.getReason()).isEqualTo("brand must not be blank");
                 });
+    }
+
+    @Test
+    void patch_shouldThrowBadRequest_whenDiscountPercentGreaterThan100() {
+        UUID productId = UUID.randomUUID();
+        ProductEntity product = new ProductEntity();
+        product.setId(productId);
+
+        when(productRepository.findById(productId)).thenReturn(java.util.Optional.of(product));
+
+        PatchProductRequestDto request = new PatchProductRequestDto(
+                null, null, null, null, null, null, null, null, null, null,
+                null, null, null, null, null, new BigDecimal("100.01"), null
+        );
+
+        assertThatThrownBy(() -> productService.patch(productId, request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> {
+                    ResponseStatusException ex = (ResponseStatusException) error;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(BAD_REQUEST.value());
+                    assertThat(ex.getReason()).isEqualTo("discountPercent must be less than or equal to 100");
+                });
+
+        verify(productRepository, never()).save(product);
     }
 }

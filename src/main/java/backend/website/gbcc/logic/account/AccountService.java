@@ -18,6 +18,10 @@ public interface AccountService {
 
     AccountResponseDto updateCustomer(UUID accountId, UpdateCustomerAccountRequestDto requestDto);
 
+    AccountResponseDto getMyProfile();
+
+    AccountResponseDto updateMyProfile(UpdateCustomerAccountRequestDto requestDto);
+
     AccountResponseDto activateCustomer(UUID accountId, ActivateCustomerAccountRequestDto requestDto);
 
     void deleteCustomer(UUID accountId);

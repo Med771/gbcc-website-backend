@@ -6,4 +6,7 @@ public record AccountPrincipal(
         UUID accountId,
         AccountRole role
 ) {
+    public boolean isAdminOrOwner() {
+        return role == AccountRole.ADMIN || role == AccountRole.OWNER;
+    }
 }

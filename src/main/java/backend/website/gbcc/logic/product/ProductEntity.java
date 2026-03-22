@@ -41,6 +41,21 @@ public class ProductEntity extends BaseEntity {
     @Column(columnDefinition = "text")
     private String description;
 
+    @Column(length = 512)
+    private String tagline;
+
+    @Column(length = 512)
+    private String tags;
+
+    @Column(name = "interest_count", nullable = false)
+    private Integer interestCount = 0;
+
+    @Column(name = "delivery_text", columnDefinition = "text")
+    private String deliveryText;
+
+    @Column(name = "licenses_text", columnDefinition = "text")
+    private String licensesText;
+
     @Column(name = "height_mm", nullable = false)
     private Integer heightMm;
 
@@ -56,6 +71,12 @@ public class ProductEntity extends BaseEntity {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "discount_percent", nullable = false, precision = 5, scale = 2)
+    private BigDecimal discountPercent = BigDecimal.ZERO;
+
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
+
+    @Column(name = "popularity_score", nullable = false)
+    private Integer popularityScore = 0;
 }

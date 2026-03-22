@@ -11,6 +11,11 @@ public record PatchProductRequestDto(
         String typeName,
         String brand,
         String description,
+        String tagline,
+        String tags,
+        String deliveryText,
+        String licensesText,
+        Integer interestCount,
         @Positive(message = "heightMm must be greater than 0")
         Integer heightMm,
         @Positive(message = "widthMm must be greater than 0")
@@ -21,6 +26,8 @@ public record PatchProductRequestDto(
         BigDecimal weightKg,
         @DecimalMin(value = "0.01", message = "price must be greater than 0")
         BigDecimal price,
+        @DecimalMin(value = "0.0", message = "discountPercent must be greater or equal to 0")
+        BigDecimal discountPercent,
         Boolean isActive
 ) {
 }

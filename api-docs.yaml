@@ -1,0 +1,3540 @@
+openapi: 3.1.0
+info:
+  title: GBCC Website API
+  description: |
+    REST API интернет-магазина / каталога GBCC: аутентификация (JWT в HttpOnly cookies),
+    аккаунты, каталог товаров и файлы, новости, акции (скидки), заказы, обращения в поддержку.
+
+    **Авторизация в Swagger UI:** схема `accessTokenCookie` — cookie `GBCC_ACCESS_TOKEN`
+    (после успешного `POST /auth/login` в том же браузере cookie подставляется автоматически;
+    при тестах из Postman — передайте cookie вручную).
+
+    **Гостевой токен поддержки:** схема `supportGuestToken` — заголовок `X-Support-Token`
+    (значение из `guestAccessToken` после создания обращения без входа).
+  version: 0.2.0
+servers:
+- url: http://localhost:8080
+  description: Local Dev Server
+tags:
+- name: Files
+  description: "Загрузка файлов (multipart), поиск метаданных, скачивание и удален\
+    ие по UUID-ключу. Файлы хранятся локально (см. app.file.bucket)."
+- name: News
+  description: "Новости: публичное чтение (с фильтрацией опубликованных для не-мен\
+    еджеров). Создание и правки — только ADMIN/OWNER с JWT."
+- name: Contact requests
+  description: |
+    Заявки с формы «Свяжитесь с нами»: публичная отправка; список и назначение — только ADMIN/OWNER (JWT).
+    Администратор может взять заявку на изучение (привязка к себе) или снять назначение.
+- name: Accounts
+  description: "Регистрация клиента (публично), управление аккаунтами с JWT (cookie).\
+    \ Правила доступа в сервисном слое."
+- name: Orders
+  description: "Заказы: оформление клиентом, просмотр, смена статуса (менеджеры)."
+- name: News
+  description: "Новости: публичное чтение; создание/редактирование — ADMIN/OWNER."
+- name: Promotions
+  description: |
+    Акции (процент скидки, период действия, охват: ALL / PRODUCT / CLASS / SERIES / PRODUCT_TYPE).
+    GET — публично; для не-менеджеров отдаются только активные и попадающие в срок. Изменение — JWT ADMIN/OWNER.
+- name: Promotions
+  description: Акции (скидки по правилам и охвату). Публичный список; изменение —
+    ADMIN/OWNER.
+- name: Auth
+  description: "Вход по email/паролю, обновление сессии, выход. Access/refresh ток\
+    ены выставляются в HttpOnly cookies."
+- name: Files
+  description: Загрузка и выдача файлов по UUID-ключу.
+- name: Support
+  description: "Обращения в администрацию: гости (токен), клиенты (JWT), ответы ад\
+    минов."
+- name: Accounts
+  description: "Учётные записи: регистрация клиента, CRUD по ролям, поиск, блокиро\
+    вка."
+- name: Products
+  description: "Каталог товаров: создание, поиск, фото, классы."
+- name: Orders
+  description: |
+    Заказы: оформляет только CUSTOMER (JWT). История заказов — GET /order (пагинация), карточка — GET /order/{id}.
+    В ответе: displayNumber (короткий номер для UI), подписи статуса и способа оплаты, окно доставки, ссылка на чек.
+    Просмотр: клиент — свои заказы; ADMIN/OWNER — любые. Смена статуса — только менеджеры.
+    Цены и скидки фиксируются на момент заказа (товар + акции).
+- name: Auth
+  description: "Вход, обновление и выход. Токены в HttpOnly cookies."
+- name: Cooperation requests
+  description: |
+    Заявки с формы «Сотрудничество с заводом»: публичная отправка; список и назначение — только ADMIN/OWNER (JWT).
+    Вложение: UUID файла после загрузки через POST /file (multipart). Тип сотрудничества — произвольная строка (как на фронте).
+- name: Support
+  description: |
+    Обращения в администрацию. Гость: имя + email + первое сообщение; в ответе guestAccessToken — сохранить и передавать в заголовке X-Support-Token.
+    Клиент с JWT создаёт обращение без гостевых полей. Все ADMIN/OWNER видят список и переписку.
+- name: Products
+  description: |
+    Каталог: CRUD товара, поиск с фильтрами, сгруппированный поиск /product/search/grouped для мобильного меню,
+    привязка фото (файл по UUID). Создание товара сейчас разрешено без JWT (см. SecurityConfig).
+paths:
+  /promotion/{promotionId}:
+    get:
+      tags:
+      - Promotions
+      summary: Получить акцию по id
+      description: Публично. Не-менеджеры не получают неактивные или вне окна дат
+        (404).
+      operationId: getById
+      parameters:
+      - name: promotionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PromotionResponseDto"
+        "404":
+          description: Нет доступа или не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    put:
+      tags:
+      - Promotions
+      summary: Полное обновление акции
+      description: JWT. ADMIN/OWNER.
+      operationId: update
+      parameters:
+      - name: promotionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePromotionRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PromotionResponseDto"
+        "400":
+          description: Ошибка данных
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    delete:
+      tags:
+      - Promotions
+      summary: Удалить акцию
+      description: JWT. ADMIN/OWNER.
+      operationId: delete
+      parameters:
+      - name: promotionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Удалена
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    patch:
+      tags:
+      - Promotions
+      summary: Частичное обновление акции
+      description: JWT. ADMIN/OWNER.
+      operationId: patch
+      parameters:
+      - name: promotionId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchPromotionRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PromotionResponseDto"
+        "400":
+          description: Ошибка данных
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /product/{productId}:
+    get:
+      tags:
+      - Products
+      summary: Карточка товара
+      description: |
+        Публично. Полная информация для страницы товара: описание, слоган, теги, тексты вкладок «Доставка»/«Лицензии»,
+        счётчик «интересовались», галерея `photoFileIds`, цены, габариты, `isActive` (в наличии / нет).
+      operationId: getById_1
+      parameters:
+      - name: productId
+        in: path
+        description: UUID товара
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Товар
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProductResponseDto"
+        "404":
+          description: Не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    put:
+      tags:
+      - Products
+      summary: Полное обновление товара
+      description: PUT — заменяет все обязательные поля согласно DTO.
+      operationId: update_1
+      parameters:
+      - name: productId
+        in: path
+        description: UUID товара
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProductResponseDto"
+        "400":
+          description: Ошибка данных
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Товар не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    patch:
+      tags:
+      - Products
+      summary: Частичное обновление товара
+      description: PATCH — только переданные поля.
+      operationId: patch_1
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchProductRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProductResponseDto"
+        "400":
+          description: Ошибка данных
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Товар не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /news/{newsId}:
+    get:
+      tags:
+      - News
+      summary: Получить новость по id
+      description: Публично. Не-менеджеры видят только опубликованные и с датой публикации
+        не в будущем.
+      operationId: getById_2
+      parameters:
+      - name: newsId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NewsResponseDto"
+        "404":
+          description: Нет доступа или не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    put:
+      tags:
+      - News
+      summary: Полное обновление новости
+      description: JWT. ADMIN/OWNER.
+      operationId: update_2
+      parameters:
+      - name: newsId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateNewsRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NewsResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    patch:
+      tags:
+      - News
+      summary: Частичное обновление новости
+      description: JWT. ADMIN/OWNER.
+      operationId: patch_2
+      parameters:
+      - name: newsId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PatchNewsRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NewsResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /account/me:
+    get:
+      tags:
+      - Accounts
+      summary: Текущий профиль (личный кабинет)
+      description: "JWT. Данные аккаунта из токена: имя, фамилия, отчество, контак\
+        ты. Пароль в ответе не возвращается."
+      operationId: getMyProfile
+      responses:
+        "200":
+          description: Профиль
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    put:
+      tags:
+      - Accounts
+      summary: Обновить свой профиль
+      description: "JWT. Только роль CUSTOMER. Поле password опционально: если не\
+        \ передать или пусто — пароль не меняется."
+      operationId: updateMyProfile
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerAccountRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponseDto"
+        "400":
+          description: Не клиент или валидация
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /account/customer/{accountId}:
+    put:
+      tags:
+      - Accounts
+      summary: Обновить данные клиента
+      description: JWT. Только для роли CUSTOMER по указанному accountId (см. правила
+        в сервисе).
+      operationId: updateCustomer
+      parameters:
+      - name: accountId
+        in: path
+        description: UUID аккаунта
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerAccountRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponseDto"
+        "400":
+          description: Неверная роль или данные
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Аккаунт не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "409":
+          description: Конфликт уникальности
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    delete:
+      tags:
+      - Accounts
+      summary: Удалить клиента
+      description: JWT. Удаление записи CUSTOMER.
+      operationId: deleteCustomer
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Удалено
+        "400":
+          description: Не клиент
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /support/conversations:
+    get:
+      tags:
+      - Support
+      summary: Список обращений (администраторы)
+      description: "Требует JWT. В сервисе допускаются только ADMIN и OWNER. Фильт\
+        ры: status, query (тема или email гостя)."
+      operationId: searchForAdmin
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - OPEN
+          - CLOSED
+      - name: query
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Страница
+          content:
+            application/json: {}
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    post:
+      tags:
+      - Support
+      summary: Создать обращение
+      description: |
+        Без JWT: обязательны message, guestName, guestEmail (валидный email).
+        С JWT и ролью CUSTOMER: только message (и опционально subject); гостевой токен не выдаётся.
+        Администраторам создавать диалог через этот метод нельзя — отвечают в существующем.
+      operationId: create
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSupportConversationRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Создано; для гостя в теле guestAccessToken
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CreateSupportConversationResponseDto"
+        "400":
+          description: Некорректные данные
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Попытка создать от имени администратора
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /support/conversations/{conversationId}/messages:
+    post:
+      tags:
+      - Support
+      summary: Добавить сообщение
+      description: |
+        Приоритет: если валиден X-Support-Token для этого диалога — сообщение от гостя (даже при наличии JWT).
+        Иначе: ADMIN/OWNER — ответ администратора; CUSTOMER — только владелец диалога.
+        Закрытый диалог — ошибка 400.
+      operationId: addMessage
+      parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: X-Support-Token
+        in: header
+        required: false
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddSupportMessageRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлённый диалог
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupportConversationDetailResponseDto"
+        "400":
+          description: Диалог закрыт или неверные данные
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Диалог не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /promotion:
+    get:
+      tags:
+      - Promotions
+      summary: Поиск акций
+      description: "Публично. Фильтры: name, isActive, scope. Для гостей — только\
+        \ видимые акции."
+      operationId: search
+      parameters:
+      - name: name
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: isActive
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: scope
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - ALL
+          - PRODUCT
+          - CLASS
+          - SERIES
+          - PRODUCT_TYPE
+      responses:
+        "200":
+          description: Страница акций
+          content:
+            application/json: {}
+    post:
+      tags:
+      - Promotions
+      summary: Создать акцию
+      description: JWT. Только ADMIN/OWNER.
+      operationId: create_1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePromotionRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Создана
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/PromotionResponseDto"
+        "400":
+          description: Некорректные scope/даты
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /product:
+    get:
+      tags:
+      - Products
+      summary: Поиск товаров (каталог)
+      description: |
+        Страница каталога: фильтры комбинируются по **И**.
+        - **q** — подстрока в бренде, описании, названиях класса / серии / типа.
+        - **classId** — UUID категории (из GET /product/classes); альтернатива префиксу **className**.
+        - **seriesIds** / **typeIds** — повторяющиеся параметры (`?typeIds=u1&typeIds=u2`) для чекбоксов «серия / тип»;
+          если заданы, префиксные **seriesName** / **typeName** не используются для этой оси.
+        - **minPrice** / **maxPrice**, **minHeightMm** / **maxHeightMm** — диапазоны (высота — габарит «Размеры» в UI).
+        - **isActive** — для витрины обычно `true` (в наличии / активные карточки).
+        Пагинация: `page`, `size`. Сортировка `sort`: например `sort=popularityScore,desc` (популярность),
+        `sort=price,asc`, `sort=createdAt,desc` (новизна), `sort=isActive,desc` (наличие), `sort=brand,asc`.
+      operationId: search_1
+      parameters:
+      - name: q
+        in: query
+        description: "Текстовый запрос: бренд, описание, названия класса/серии/тип\
+          а"
+        required: false
+        schema:
+          type: string
+      - name: className
+        in: query
+        description: Префикс имени класса (категории)
+        required: false
+        schema:
+          type: string
+      - name: classId
+        in: query
+        description: Точная категория по UUID (предпочтительно для боковой колонки)
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: seriesIds
+        in: query
+        description: "Фильтр по сериям: повторять параметр для нескольких UUID"
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      - name: typeIds
+        in: query
+        description: Фильтр по типам товара (чекбоксы размеров/модификаций)
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+            format: uuid
+      - name: seriesName
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: typeName
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: brand
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: minPrice
+        in: query
+        required: false
+        schema:
+          type: number
+          minimum: 0.0
+      - name: maxPrice
+        in: query
+        required: false
+        schema:
+          type: number
+          minimum: 0.0
+      - name: minHeightMm
+        in: query
+        description: "Мин. высота (мм), габарит для фильтра «Размеры»"
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: maxHeightMm
+        in: query
+        description: Макс. высота (мм)
+        required: false
+        schema:
+          type: integer
+          format: int32
+      - name: isActive
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: Страница товаров
+          content:
+            application/json: {}
+    post:
+      tags:
+      - Products
+      summary: Создать товар
+      description: "Создаёт товар с классом/серией/типом (по имени или существующи\
+        м id), ценой, скидкой и габаритами."
+      operationId: create_2
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Создан
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProductResponseDto"
+        "400":
+          description: Валидация или бизнес-правила
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "409":
+          description: Конфликт уникальности товара
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /product/{productId}/photos:
+    post:
+      tags:
+      - Products
+      summary: Привязать фото к товару
+      description: "Тело: fileId (UUID загруженного файла). Связь product_photo."
+      operationId: attachPhoto
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttachProductPhotoRequestDto"
+        required: true
+      responses:
+        "204":
+          description: Фото привязано
+        "400":
+          description: Ошибка
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Товар или файл не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      tags:
+      - Products
+      summary: Отвязать фото
+      description: Query-параметр fileId — UUID файла.
+      operationId: detachPhotoByFileId
+      parameters:
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: fileId
+        in: query
+        description: UUID файла
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Отвязано
+        "404":
+          description: Не найдено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /order:
+    get:
+      tags:
+      - Orders
+      summary: История / поиск заказов
+      description: |
+        JWT. Для CUSTOMER — только свои заказы (customerId подставляется автоматически): удобно для экрана «История заказов».
+        Менеджеры могут фильтровать по customerId и status.
+      operationId: search_2
+      parameters:
+      - name: customerId
+        in: query
+        required: false
+        schema:
+          type: string
+          format: uuid
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - CREATED
+          - PROCESSING
+          - PACKED
+          - SHIPPED
+          - DELIVERED
+          - CANCELLED
+      responses:
+        "200":
+          description: Страница заказов
+          content:
+            application/json: {}
+      security:
+      - accessTokenCookie: []
+    post:
+      tags:
+      - Orders
+      summary: Создать заказ
+      description: |
+        Требует JWT роли CUSTOMER. Позиции: productId + quantity. Адрес доставки и способ оплаты обязательны.
+      operationId: create_3
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Заказ создан
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderResponseDto"
+        "400":
+          description: "Пустые позиции, неактивный товар и т.д."
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не CUSTOMER
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /news:
+    get:
+      tags:
+      - News
+      summary: Поиск новостей
+      description: "Параметры: query (текст), isPublished, category (рубрика). Паг\
+        инация Spring."
+      operationId: search_3
+      parameters:
+      - name: query
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: isPublished
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+          - PRODUCTS
+          - PRODUCTION
+          - SUPPLIES
+          - PROJECTS
+          - CLIENTS
+          - PARTNERS
+          - PROMOTIONS
+      responses:
+        "200":
+          description: Страница новостей
+          content:
+            application/json: {}
+    post:
+      tags:
+      - News
+      summary: Создать новость
+      description: Требует JWT. Только роли ADMIN или OWNER.
+      operationId: create_4
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNewsRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Создана
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/NewsResponseDto"
+        "400":
+          description: Валидация
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Недостаточно прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /file:
+    get:
+      tags:
+      - Files
+      summary: Поиск файлов по метаданным
+      description: "Фильтры: key, fileName, bucket. Пагинация Spring."
+      operationId: search_4
+      parameters:
+      - name: key
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: fileName
+        in: query
+        required: false
+        schema:
+          type: string
+      - name: bucket
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Страница записей
+          content:
+            application/json: {}
+    post:
+      tags:
+      - Files
+      summary: Загрузить файл
+      description: "Content-Type: multipart/form-data. Поля см. UploadFileRequestDto\
+        \ (файл + опционально bucket/fileName)."
+      operationId: upload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/UploadFileRequestDto"
+      responses:
+        "201":
+          description: "Файл сохранён, в ответе key (UUID) и метаданные"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/FileUploadResponseDto"
+        "400":
+          description: Некорректный запрос
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /cooperation-requests:
+    get:
+      tags:
+      - Cooperation requests
+      summary: Список заявок (администраторы)
+      description: "JWT. Фильтры: onlyUnassigned, query (поиск по имени, email, те\
+        лефону, комментарию, типу сотрудничества)."
+      operationId: searchForAdmin_1
+      parameters:
+      - name: onlyUnassigned
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: query
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Страница заявок
+          content:
+            application/json: {}
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    post:
+      tags:
+      - Cooperation requests
+      summary: Отправить заявку
+      description: Публично. Требуется согласие на обработку персональных данных.
+      operationId: create_5
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCooperationRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Создана
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CooperationRequestResponseDto"
+        "400":
+          description: Валидация или файл не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /cooperation-requests/{id}/take:
+    post:
+      tags:
+      - Cooperation requests
+      summary: Взять заявку на изучение
+      description: JWT. Назначает текущего администратора. Если уже назначен другой
+        — 409 (OWNER может переназначить на себя).
+      operationId: take
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Назначено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CooperationRequestResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "409":
+          description: Уже назначена другому
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /cooperation-requests/{id}/release:
+    post:
+      tags:
+      - Cooperation requests
+      summary: Снять назначение
+      description: JWT. Снимает привязку администратора; может назначенный админ или
+        OWNER.
+      operationId: release
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Снято
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CooperationRequestResponseDto"
+        "400":
+          description: Не было назначения
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /contact-requests:
+    get:
+      tags:
+      - Contact requests
+      summary: Список заявок (администраторы)
+      description: "JWT. Фильтры: onlyUnassigned (только без назначенного), query\
+        \ (поиск по имени, email, телефону, тексту сообщения)."
+      operationId: searchForAdmin_2
+      parameters:
+      - name: onlyUnassigned
+        in: query
+        required: false
+        schema:
+          type: boolean
+      - name: query
+        in: query
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Страница заявок
+          content:
+            application/json: {}
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+    post:
+      tags:
+      - Contact requests
+      summary: Отправить заявку
+      description: Публично. Требуется согласие на обработку персональных данных.
+      operationId: create_6
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateContactRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Создана
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ContactRequestResponseDto"
+        "400":
+          description: Валидация
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /contact-requests/{id}/take:
+    post:
+      tags:
+      - Contact requests
+      summary: Взять заявку на изучение
+      description: JWT. Назначает текущего администратора. Если уже назначен другой
+        — 409 (OWNER может переназначить на себя).
+      operationId: take_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Назначено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ContactRequestResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "409":
+          description: Уже назначена другому
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /contact-requests/{id}/release:
+    post:
+      tags:
+      - Contact requests
+      summary: Снять назначение
+      description: JWT. Снимает привязку администратора; может назначенный админ или
+        OWNER.
+      operationId: release_1
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Снято
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ContactRequestResponseDto"
+        "400":
+          description: Не было назначения
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет прав
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /auth/refresh:
+    post:
+      tags:
+      - Auth
+      summary: Обновление access-токена
+      description: |
+        Читает refresh-токен из cookie `GBCC_REFRESH_TOKEN` (запрос на `/auth/refresh` должен отправлять этот cookie).
+        Выдаёт новую пару access+refresh и ротирует refresh в БД.
+      operationId: refresh
+      responses:
+        "200":
+          description: Новая сессия
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponseDto"
+        "401":
+          description: "Refresh отсутствует, недействителен или истёк"
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Аккаунт заблокирован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /auth/logout:
+    post:
+      tags:
+      - Auth
+      summary: Выход
+      description: Отзывает refresh-токен в БД и очищает cookies авторизации.
+      operationId: logout
+      responses:
+        "204":
+          description: Выход выполнен (тело пустое)
+        "400":
+          description: Ошибка валидации
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /auth/login:
+    post:
+      tags:
+      - Auth
+      summary: Вход в систему
+      description: |
+        Проверяет email и пароль. При успехе устанавливает cookies:
+        `GBCC_ACCESS_TOKEN` (path `/`) и `GBCC_REFRESH_TOKEN` (path `/auth`).
+        В теле ответа — accountId, роль и время истечения токенов (для отладки/UI).
+      operationId: login
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Успешный вход
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokenResponseDto"
+        "400":
+          description: Ошибка валидации тела запроса
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Неверные учётные данные
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Аккаунт заблокирован или регистрация не завершена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /account/customer/register:
+    post:
+      tags:
+      - Accounts
+      summary: Регистрация клиента
+      description: Публичный endpoint. Создаёт CUSTOMER с активным статусом и паролем.
+      operationId: registerCustomer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterCustomerAccountRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Клиент зарегистрирован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponseDto"
+        "400":
+          description: Ошибка валидации
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "409":
+          description: Конфликт уникальности email/телефона
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /account/admin:
+    post:
+      tags:
+      - Accounts
+      summary: Создать аккаунт администратора
+      description: Требует авторизации. Обычно для первичного заведения админов.
+      operationId: createAdmin
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAdminAccountRequestDto"
+        required: true
+      responses:
+        "201":
+          description: Админ создан
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponseDto"
+        "400":
+          description: Некорректные данные
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Не авторизован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "409":
+          description: Email или телефон уже заняты
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /support/conversations/{conversationId}/status:
+    patch:
+      tags:
+      - Support
+      summary: Изменить статус обращения
+      description: JWT. Только ADMIN/OWNER (например CLOSED).
+      operationId: updateStatus
+      parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSupportConversationStatusRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupportConversationDetailResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /order/{orderId}/status:
+    patch:
+      tags:
+      - Orders
+      summary: Изменить статус заказа
+      description: |
+        JWT. Только ADMIN/OWNER. Переходы статусов валидируются на сервере.
+        Опционально: estimatedDeliveryAt / estimatedDeliveryEnd (окно доставки), receiptUrl (электронный чек), comment.
+      operationId: updateStatus_1
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrderStatusRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Обновлено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderResponseDto"
+        "400":
+          description: Недопустимый переход статуса
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Заказ не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /account/{accountId}/unblock:
+    patch:
+      tags:
+      - Accounts
+      summary: Разблокировать аккаунт
+      description: JWT.
+      operationId: unblock
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Разблокирован
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /account/{accountId}/block:
+    patch:
+      tags:
+      - Accounts
+      summary: Заблокировать аккаунт
+      description: JWT. Устанавливает isBlocked=true.
+      operationId: block
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "204":
+          description: Заблокирован
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /account/customer/{accountId}/activate:
+    patch:
+      tags:
+      - Accounts
+      summary: Активация клиента (установка пароля)
+      description: "JWT. Завершает регистрацию, если применимо."
+      operationId: activateCustomer
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivateCustomerAccountRequestDto"
+        required: true
+      responses:
+        "200":
+          description: Активирован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponseDto"
+        "400":
+          description: Неверные данные или роль
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Аккаунт заблокирован
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /support/conversations/{conversationId}:
+    get:
+      tags:
+      - Support
+      summary: Получить переписку по id
+      description: |
+        Доступ: JWT ADMIN/OWNER (любой диалог); JWT CUSTOMER (свой диалог); гость — заголовок X-Support-Token (схема supportGuestToken в Authorize).
+      operationId: get
+      parameters:
+      - name: conversationId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: X-Support-Token
+        in: header
+        description: Токен гостя (если обращение без аккаунта)
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Диалог с сообщениями
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SupportConversationDetailResponseDto"
+        "403":
+          description: Нет доступа
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /support/conversations/my:
+    get:
+      tags:
+      - Support
+      summary: Мои обращения (клиент)
+      description: JWT. Только роль CUSTOMER. Пагинация Spring.
+      operationId: listMine
+      responses:
+        "200":
+          description: Страница обращений
+          content:
+            application/json: {}
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не клиент
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /product/{productId}/similar:
+    get:
+      tags:
+      - Products
+      summary: Похожие товары
+      description: "Та же категория (класс), исключая текущий товар. По умолчанию\
+        \ только активные (`onlyActive=true`)."
+      operationId: findSimilar
+      parameters:
+      - name: productId
+        in: path
+        description: UUID товара
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 8
+          maximum: 24
+          minimum: 1
+      - name: onlyActive
+        in: query
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: Список товаров
+          content:
+            application/json: {}
+        "404":
+          description: Текущий товар не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /product/search/grouped:
+    get:
+      tags:
+      - Products
+      summary: Сгруппированный поиск (мобильное меню)
+      description: |
+        Один запрос **q** — совпадения по подстроке (как в обычном поиске товаров) возвращаются в двух блоках:
+        **categories** — классы товаров (категории каталога); **products** — товары (оборудование).
+        Поля **totalCategoryCount** / **totalProductCount** — полное число совпадений; в списках — только первые
+        `categoryLimit` / `productLimit` записей (превью). Полный список товаров — через **GET /product** с тем же `q`.
+        По умолчанию учитываются только активные товары (`isActive=true`).
+      operationId: searchGrouped
+      parameters:
+      - name: q
+        in: query
+        description: Текст поиска (обязателен; пустой или только спецсимволы — пустой
+          ответ)
+        required: true
+        schema:
+          type: string
+      - name: categoryLimit
+        in: query
+        description: Сколько классов в превью (1–50)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 5
+          maximum: 50
+          minimum: 1
+      - name: productLimit
+        in: query
+        description: Сколько товаров в превью (1–50)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+          maximum: 50
+          minimum: 1
+      - name: isActive
+        in: query
+        description: Фильтр активности товара (по умолчанию только активные)
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: Категории и товары с количествами
+          content:
+            application/json: {}
+  /product/classes:
+    get:
+      tags:
+      - Products
+      summary: Список классов товаров
+      description: Справочник product_class для фильтров и форм.
+      operationId: getClasses
+      responses:
+        "200":
+          description: Список классов
+          content:
+            application/json: {}
+  /order/{orderId}:
+    get:
+      tags:
+      - Orders
+      summary: Получить заказ по id
+      description: JWT. Клиент — только свой заказ; менеджеры — любой.
+      operationId: getById_3
+      parameters:
+      - name: orderId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrderResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Нет доступа
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /news/categories:
+    get:
+      tags:
+      - News
+      summary: Список рубрик новостей
+      description: Значения enum для фильтров на фронте.
+      operationId: listCategories
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  type: string
+                  enum:
+                  - PRODUCTS
+                  - PRODUCTION
+                  - SUPPLIES
+                  - PROJECTS
+                  - CLIENTS
+                  - PARTNERS
+                  - PROMOTIONS
+  /file/{key}:
+    get:
+      tags:
+      - Files
+      summary: Скачать файл
+      description: "key в пути — UUID. Ответ: бинарное тело, Content-Type из сохра\
+        нённого MIME."
+      operationId: download
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      responses:
+        "200":
+          description: Содержимое файла
+          content:
+            application/octet-stream: {}
+        "400":
+          description: Некорректный UUID
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Файл не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+    delete:
+      tags:
+      - Files
+      summary: Удалить файл
+      description: Удаляет запись и объект с диска по UUID key.
+      operationId: delete_1
+      parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+          pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      responses:
+        "204":
+          description: Удалено
+        "400":
+          description: Некорректный UUID
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдено
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+  /cooperation-requests/{id}:
+    get:
+      tags:
+      - Cooperation requests
+      summary: Заявка по id (администраторы)
+      description: JWT. Полная карточка с назначением и id вложения.
+      operationId: getById_4
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/CooperationRequestResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /contact-requests/{id}:
+    get:
+      tags:
+      - Contact requests
+      summary: Заявка по id (администраторы)
+      description: JWT. Полная карточка с назначением.
+      operationId: getById_5
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ContactRequestResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Не менеджер
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найдена
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /account:
+    get:
+      tags:
+      - Accounts
+      summary: Поиск аккаунтов
+      description: "JWT. Фильтры: имя, телефон, email, роль, признак блокировки. П\
+        агинация Spring: page, size, sort."
+      operationId: search_5
+      parameters:
+      - name: name
+        in: query
+        description: Часть имени
+        required: false
+        schema:
+          type: string
+      - name: phone
+        in: query
+        description: Телефон
+        required: false
+        schema:
+          type: string
+      - name: email
+        in: query
+        description: Email
+        required: false
+        schema:
+          type: string
+      - name: role
+        in: query
+        description: Роль
+        required: false
+        schema:
+          type: string
+          enum:
+          - OWNER
+          - ADMIN
+          - CUSTOMER
+      - name: isBlocked
+        in: query
+        description: Заблокирован
+        required: false
+        schema:
+          type: boolean
+      responses:
+        "200":
+          description: Страница результатов
+          content:
+            application/json: {}
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+  /account/{accountId}:
+    get:
+      tags:
+      - Accounts
+      summary: Получить аккаунт по id
+      description: JWT. Доступ ограничен правилами (админ видит не всех).
+      operationId: getById_6
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountResponseDto"
+        "401":
+          description: Нет JWT
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "403":
+          description: Доступ запрещён
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: Не найден
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security:
+      - accessTokenCookie: []
+components:
+  schemas:
+    UpdatePromotionRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        discountPercent:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        priority:
+          type: integer
+          format: int32
+        scope:
+          type: string
+          enum:
+          - ALL
+          - PRODUCT
+          - CLASS
+          - SERIES
+          - PRODUCT_TYPE
+        scopeReferenceId:
+          type: string
+          format: uuid
+      required:
+      - discountPercent
+      - isActive
+      - name
+      - priority
+      - scope
+    PromotionResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        discountPercent:
+          type: number
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        priority:
+          type: integer
+          format: int32
+        scope:
+          type: string
+          enum:
+          - ALL
+          - PRODUCT
+          - CLASS
+          - SERIES
+          - PRODUCT_TYPE
+        scopeReferenceId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ApiErrorField:
+      type: object
+      properties:
+        field:
+          type: string
+        message:
+          type: string
+    ApiErrorResponse:
+      type: object
+      description: Единый формат ошибки API (см. GlobalExceptionHandler)
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: integer
+          format: int32
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApiErrorField"
+    UpdateProductRequestDto:
+      type: object
+      properties:
+        className:
+          type: string
+          minLength: 1
+        seriesName:
+          type: string
+        typeName:
+          type: string
+        brand:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        tagline:
+          type: string
+        tags:
+          type: string
+        deliveryText:
+          type: string
+        licensesText:
+          type: string
+        interestCount:
+          type: integer
+          format: int32
+        heightMm:
+          type: integer
+          format: int32
+        widthMm:
+          type: integer
+          format: int32
+        lengthMm:
+          type: integer
+          format: int32
+        weightKg:
+          type: number
+          minimum: 0.001
+        price:
+          type: number
+          minimum: 0.01
+        discountPercent:
+          type: number
+          minimum: 0.0
+        isActive:
+          type: boolean
+      required:
+      - brand
+      - className
+      - heightMm
+      - lengthMm
+      - price
+      - weightKg
+      - widthMm
+    ProductResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        className:
+          type: string
+        seriesName:
+          type: string
+        typeName:
+          type: string
+        brand:
+          type: string
+        description:
+          type: string
+        tagline:
+          type: string
+        tags:
+          type: string
+        interestCount:
+          type: integer
+          format: int32
+        deliveryText:
+          type: string
+        licensesText:
+          type: string
+        popularityScore:
+          type: integer
+          format: int32
+        heightMm:
+          type: integer
+          format: int32
+        widthMm:
+          type: integer
+          format: int32
+        lengthMm:
+          type: integer
+          format: int32
+        weightKg:
+          type: number
+        price:
+          type: number
+        discountPercent:
+          type: number
+        discountedPrice:
+          type: number
+        isActive:
+          type: boolean
+        photoFileIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UpdateNewsRequestDto:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        previewText:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          enum:
+          - PRODUCTS
+          - PRODUCTION
+          - SUPPLIES
+          - PROJECTS
+          - CLIENTS
+          - PARTNERS
+          - PROMOTIONS
+        coverFileId:
+          type: string
+          format: uuid
+        isPublished:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+      required:
+      - category
+      - content
+      - isPublished
+      - previewText
+      - title
+    NewsResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        previewText:
+          type: string
+        content:
+          type: string
+        coverFileId:
+          type: string
+          format: uuid
+        category:
+          type: string
+          enum:
+          - PRODUCTS
+          - PRODUCTION
+          - SUPPLIES
+          - PROJECTS
+          - CLIENTS
+          - PARTNERS
+          - PROMOTIONS
+        isPublished:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+        createdByAccountId:
+          type: string
+          format: uuid
+        updatedByAccountId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    UpdateCustomerAccountRequestDto:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 255
+          minLength: 0
+        lastName:
+          type: string
+          maxLength: 255
+          minLength: 0
+        patronymic:
+          type: string
+          maxLength: 255
+          minLength: 0
+        phone:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+      required:
+      - email
+      - firstName
+      - lastName
+      - phone
+    AccountResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        patronymic:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum:
+          - OWNER
+          - ADMIN
+          - CUSTOMER
+        registrationStatus:
+          type: string
+          enum:
+          - PENDING
+          - ACTIVE
+        isBlocked:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateSupportConversationRequestDto:
+      type: object
+      properties:
+        subject:
+          type: string
+          maxLength: 500
+          minLength: 0
+        message:
+          type: string
+          maxLength: 16000
+          minLength: 0
+        guestName:
+          type: string
+          maxLength: 255
+          minLength: 0
+        guestEmail:
+          type: string
+          format: email
+          maxLength: 255
+          minLength: 0
+      required:
+      - message
+    CreateSupportConversationResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        guestAccessToken:
+          type: string
+        subject:
+          type: string
+        status:
+          type: string
+          enum:
+          - OPEN
+          - CLOSED
+        createdAt:
+          type: string
+          format: date-time
+    AddSupportMessageRequestDto:
+      type: object
+      properties:
+        message:
+          type: string
+          maxLength: 16000
+          minLength: 0
+      required:
+      - message
+    SupportConversationDetailResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        subject:
+          type: string
+        status:
+          type: string
+          enum:
+          - OPEN
+          - CLOSED
+        guestName:
+          type: string
+        guestEmail:
+          type: string
+        customerId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SupportMessageResponseDto"
+    SupportMessageResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        authorType:
+          type: string
+          enum:
+          - GUEST
+          - CUSTOMER
+          - ADMIN
+        authorAccountId:
+          type: string
+          format: uuid
+        body:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    CreatePromotionRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        discountPercent:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        priority:
+          type: integer
+          format: int32
+        scope:
+          type: string
+          enum:
+          - ALL
+          - PRODUCT
+          - CLASS
+          - SERIES
+          - PRODUCT_TYPE
+        scopeReferenceId:
+          type: string
+          format: uuid
+      required:
+      - discountPercent
+      - isActive
+      - name
+      - priority
+      - scope
+    CreateProductRequestDto:
+      type: object
+      properties:
+        className:
+          type: string
+          minLength: 1
+        seriesName:
+          type: string
+        typeName:
+          type: string
+        brand:
+          type: string
+          minLength: 1
+        description:
+          type: string
+        tagline:
+          type: string
+        tags:
+          type: string
+        deliveryText:
+          type: string
+        licensesText:
+          type: string
+        heightMm:
+          type: integer
+          format: int32
+        widthMm:
+          type: integer
+          format: int32
+        lengthMm:
+          type: integer
+          format: int32
+        weightKg:
+          type: number
+          minimum: 0.001
+        price:
+          type: number
+          minimum: 0.01
+        discountPercent:
+          type: number
+          minimum: 0.0
+        isActive:
+          type: boolean
+      required:
+      - brand
+      - className
+      - heightMm
+      - lengthMm
+      - price
+      - weightKg
+      - widthMm
+    AttachProductPhotoRequestDto:
+      type: object
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        sortOrder:
+          type: integer
+          format: int32
+      required:
+      - fileId
+    CreateOrderItemRequestDto:
+      type: object
+      properties:
+        productId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          format: int32
+      required:
+      - productId
+      - quantity
+    CreateOrderRequestDto:
+      type: object
+      properties:
+        deliveryAddress:
+          type: string
+          minLength: 1
+        customerComment:
+          type: string
+        paymentMethod:
+          type: string
+          enum:
+          - CARD_ONLINE
+          - CARD_OR_ON_RECEIPT
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CreateOrderItemRequestDto"
+          minItems: 1
+      required:
+      - deliveryAddress
+      - items
+      - paymentMethod
+    OrderItemResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        productBrand:
+          type: string
+        productClassName:
+          type: string
+        productSeriesName:
+          type: string
+        productTypeName:
+          type: string
+        quantity:
+          type: integer
+          format: int32
+        unitPrice:
+          type: number
+        unitDiscountPercent:
+          type: number
+        unitDiscountedPrice:
+          type: number
+        lineTotalPrice:
+          type: number
+        lineTotalDiscountedPrice:
+          type: number
+    OrderResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        displayNumber:
+          type: integer
+          format: int64
+        customerId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum:
+          - CREATED
+          - PROCESSING
+          - PACKED
+          - SHIPPED
+          - DELIVERED
+          - CANCELLED
+        statusLabel:
+          type: string
+        deliveryAddress:
+          type: string
+        customerComment:
+          type: string
+        paymentMethod:
+          type: string
+          enum:
+          - CARD_ONLINE
+          - CARD_OR_ON_RECEIPT
+        paymentMethodLabel:
+          type: string
+        receiptUrl:
+          type: string
+        estimatedDeliveryAt:
+          type: string
+          format: date-time
+        estimatedDeliveryEnd:
+          type: string
+          format: date-time
+        totalPrice:
+          type: number
+        totalDiscountedPrice:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemResponseDto"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderStatusHistoryResponseDto"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    OrderStatusHistoryResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        fromStatus:
+          type: string
+          enum:
+          - CREATED
+          - PROCESSING
+          - PACKED
+          - SHIPPED
+          - DELIVERED
+          - CANCELLED
+        toStatus:
+          type: string
+          enum:
+          - CREATED
+          - PROCESSING
+          - PACKED
+          - SHIPPED
+          - DELIVERED
+          - CANCELLED
+        changedByAccountId:
+          type: string
+          format: uuid
+        comment:
+          type: string
+        estimatedDeliveryAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    CreateNewsRequestDto:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+        previewText:
+          type: string
+          minLength: 1
+        content:
+          type: string
+          minLength: 1
+        category:
+          type: string
+          enum:
+          - PRODUCTS
+          - PRODUCTION
+          - SUPPLIES
+          - PROJECTS
+          - CLIENTS
+          - PARTNERS
+          - PROMOTIONS
+        coverFileId:
+          type: string
+          format: uuid
+        isPublished:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+      required:
+      - category
+      - content
+      - previewText
+      - title
+    UploadFileRequestDto:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+      required:
+      - file
+    FileUploadResponseDto:
+      type: object
+      properties:
+        fileId:
+          type: string
+          format: uuid
+        key:
+          type: string
+        bucket:
+          type: string
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        size:
+          type: integer
+          format: int64
+    CreateCooperationRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 0
+        phone:
+          type: string
+          maxLength: 64
+          minLength: 0
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          minLength: 0
+        cooperationType:
+          type: string
+          maxLength: 128
+          minLength: 0
+        comment:
+          type: string
+        attachmentFileId:
+          type: string
+          format: uuid
+        consentProcessing:
+          type: boolean
+      required:
+      - email
+      - name
+      - phone
+    CooperationRequestResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        cooperationType:
+          type: string
+        comment:
+          type: string
+        attachmentFileId:
+          type: string
+          format: uuid
+        consentProcessing:
+          type: boolean
+        assignedToAccountId:
+          type: string
+          format: uuid
+        assignedToName:
+          type: string
+        assignedToEmail:
+          type: string
+        assignedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    CreateContactRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          minLength: 0
+        email:
+          type: string
+          format: email
+          maxLength: 255
+          minLength: 0
+        phone:
+          type: string
+          maxLength: 64
+          minLength: 0
+        message:
+          type: string
+          minLength: 1
+        consentProcessing:
+          type: boolean
+      required:
+      - email
+      - message
+      - name
+    ContactRequestResponseDto:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        message:
+          type: string
+        consentProcessing:
+          type: boolean
+        assignedToAccountId:
+          type: string
+          format: uuid
+        assignedToName:
+          type: string
+        assignedToEmail:
+          type: string
+        assignedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AuthTokenResponseDto:
+      type: object
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum:
+          - OWNER
+          - ADMIN
+          - CUSTOMER
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+    AuthLoginRequestDto:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          minLength: 1
+      required:
+      - email
+      - password
+    RegisterCustomerAccountRequestDto:
+      type: object
+      properties:
+        firstName:
+          type: string
+          maxLength: 255
+          minLength: 0
+        lastName:
+          type: string
+          maxLength: 255
+          minLength: 0
+        patronymic:
+          type: string
+          maxLength: 255
+          minLength: 0
+        phone:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          maxLength: 2147483647
+          minLength: 8
+      required:
+      - email
+      - firstName
+      - lastName
+      - password
+      - phone
+    CreateAdminAccountRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          maxLength: 2147483647
+          minLength: 8
+      required:
+      - email
+      - name
+      - password
+    UpdateSupportConversationStatusRequestDto:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - OPEN
+          - CLOSED
+      required:
+      - status
+    PatchPromotionRequestDto:
+      type: object
+      properties:
+        name:
+          type: string
+        discountPercent:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+        validFrom:
+          type: string
+          format: date-time
+        validTo:
+          type: string
+          format: date-time
+        isActive:
+          type: boolean
+        priority:
+          type: integer
+          format: int32
+        scope:
+          type: string
+          enum:
+          - ALL
+          - PRODUCT
+          - CLASS
+          - SERIES
+          - PRODUCT_TYPE
+        scopeReferenceId:
+          type: string
+          format: uuid
+    PatchProductRequestDto:
+      type: object
+      properties:
+        className:
+          type: string
+        seriesName:
+          type: string
+        typeName:
+          type: string
+        brand:
+          type: string
+        description:
+          type: string
+        tagline:
+          type: string
+        tags:
+          type: string
+        deliveryText:
+          type: string
+        licensesText:
+          type: string
+        interestCount:
+          type: integer
+          format: int32
+        heightMm:
+          type: integer
+          format: int32
+        widthMm:
+          type: integer
+          format: int32
+        lengthMm:
+          type: integer
+          format: int32
+        weightKg:
+          type: number
+          minimum: 0.001
+        price:
+          type: number
+          minimum: 0.01
+        discountPercent:
+          type: number
+          minimum: 0.0
+        isActive:
+          type: boolean
+    UpdateOrderStatusRequestDto:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+          - CREATED
+          - PROCESSING
+          - PACKED
+          - SHIPPED
+          - DELIVERED
+          - CANCELLED
+        estimatedDeliveryAt:
+          type: string
+          format: date-time
+        estimatedDeliveryEnd:
+          type: string
+          format: date-time
+        receiptUrl:
+          type: string
+        comment:
+          type: string
+      required:
+      - status
+    PatchNewsRequestDto:
+      type: object
+      properties:
+        title:
+          type: string
+        previewText:
+          type: string
+        content:
+          type: string
+        category:
+          type: string
+          enum:
+          - PRODUCTS
+          - PRODUCTION
+          - SUPPLIES
+          - PROJECTS
+          - CLIENTS
+          - PARTNERS
+          - PROMOTIONS
+        coverFileId:
+          type: string
+          format: uuid
+        isPublished:
+          type: boolean
+        publishedAt:
+          type: string
+          format: date-time
+    ActivateCustomerAccountRequestDto:
+      type: object
+      properties:
+        password:
+          type: string
+          maxLength: 2147483647
+          minLength: 8
+      required:
+      - password
+  securitySchemes:
+    accessTokenCookie:
+      type: apiKey
+      description: |
+        JWT access token (HttpOnly cookie). Выставляется после POST /auth/login.
+        В Swagger UI: Authorize → значение токена (если копируете из DevTools) или вход через браузер на том же origin.
+      name: GBCC_ACCESS_TOKEN
+      in: cookie
+    supportGuestToken:
+      type: apiKey
+      description: |
+        Токен гостя для обращения в поддержку без аккаунта.
+        Возвращается в теле ответа POST /support/conversations (поле guestAccessToken).
+      name: X-Support-Token
+      in: header
