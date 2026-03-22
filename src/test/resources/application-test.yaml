@@ -1,0 +1,19 @@
+# Профиль для интеграционных тестов (Testcontainers подставляет JDBC через @ServiceConnection).
+spring:
+  jpa:
+    show-sql: false
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  account:
+    owner:
+      email: integration-owner@example.com
+      password: OwnerIntegrationTest123!
+
+logging:
+  level:
+    backend.website.gbcc: INFO
+    org.flywaydb: INFO

@@ -32,7 +32,8 @@ OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-d
 - `logic/*` — домены: `auth`, `account`, `product`, `file`, `news`, `promotion`, `order`, `support`, `contactrequest`
 - `model` — общие enum, DTO ошибок, базовые сущности
 - `resources/db/migration` — SQL миграции Flyway (`V###__description.sql`)
-- `test` — unit-тесты сервисов, контекст Spring Boot
+- `test` — unit-тесты (Mockito), WebMvc-срезы (`@GbccWebMvcTest`), интеграционные тесты с Testcontainers (тег `requires-docker`)
+- `docs/TEST_COVERAGE_GAPS.md` — приоритеты покрытия и пробелы
 
 ---
 
@@ -153,9 +154,40 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 
 ## Тесты
 
+Обычный прогон (без Docker): unit + WebMvc, **без** поднятия PostgreSQL в контейнере:
+
 ```bash
 mvn test
 ```
+
+Полный прогон с **интеграционными** тестами (Testcontainers PostgreSQL — нужен **Docker**):
+
+```bash
+mvn verify -Pintegration-tests
+```
+
+Отчёт покрытия **JaCoCo** после `mvn verify`:
+
+- `target/site/jacoco/index.html`
+- Минимальная доля покрытых строк задаётся свойством `jacoco.minimum.line.ratio` в `pom.xml` (проверка на фазе `verify`).
+
+Профиль `test` подхватывает `src/test/resources/application-test.yaml` (секрет JWT и owner для инициализации в интеграционных сценариях).
+
+#### `Failed to resolve org.junit.vintage:junit-vintage-engine:6.0.3`
+
+- В **Spring Boot 4** `spring-boot-starter-test` уже **не** тянет Vintage; тесты в проекте на **JUnit Jupiter**. Версия `6.0.3` задаётся через **JUnit BOM** из родительского POM — IDE иногда показывает «не найдено», хотя `mvn test` проходит.
+- **Что сделать:** в IDE — **Reload All Maven Projects** (и при необходимости *Invalidate Caches*). Убедиться, что в `settings.xml` есть доступ к **Maven Central** (или корпоративное зеркало уже проксирует `org/junit/vintage/junit-vintage-engine/6.0.3`).
+- Проверка загрузки артефакта: `mvn dependency:get -Dartifact=org.junit.vintage:junit-vintage-engine:6.0.3`.
+
+### Процесс исправления багов (red → green → refactor)
+
+1. **Red** — тест воспроизводит ошибку или фиксирует ожидаемое поведение.
+2. **Green** — минимальное изменение кода до прохождения теста.
+3. **Refactor** — упрощение без смены контракта API.
+
+### Покрытие: куда смотреть дальше
+
+См. [docs/TEST_COVERAGE_GAPS.md](docs/TEST_COVERAGE_GAPS.md).
 
 Только компиляция:
 

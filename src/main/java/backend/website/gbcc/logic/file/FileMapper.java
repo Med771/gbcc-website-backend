@@ -11,6 +11,9 @@ import org.springframework.core.io.Resource;
 @Mapper(componentModel = "spring")
 public interface FileMapper {
 
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "key", source = "key")
     @Mapping(target = "bucket", source = "bucket")
     @Mapping(target = "fileName", source = "requestDto.file.originalFilename")

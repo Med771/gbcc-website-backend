@@ -1,0 +1,10 @@
+# Общие настройки для всех тестов (classpath тестов перекрывает только при необходимости).
+spring:
+  main:
+    banner-mode: off
+
+logging:
+  level:
+    org.springframework.test.context.support.AnnotationConfigContextLoaderUtils: WARN
+    org.springframework.boot.test.context.SpringBootTestContextBootstrapper: WARN
+    org.testcontainers.dockerclient: WARN

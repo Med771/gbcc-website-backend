@@ -11,6 +11,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -160,7 +161,9 @@ class ContactRequestServiceImplTest {
     void searchForAdmin_returnsPage() {
         UUID ownerId = UUID.randomUUID();
         setPrincipal(ownerId, AccountRole.OWNER);
-        when(contactRequestRepository.findAll(any(Specification.class), any(Pageable.class)))
+        when(contactRequestRepository.findAll(
+                ArgumentMatchers.<Specification<ContactRequestEntity>>any(),
+                any(Pageable.class)))
                 .thenReturn(new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 20), 0));
 
         assertThat(contactRequestService.searchForAdmin(true, "q", PageRequest.of(0, 20)).data())

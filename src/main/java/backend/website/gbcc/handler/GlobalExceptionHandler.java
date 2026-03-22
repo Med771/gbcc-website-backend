@@ -7,6 +7,7 @@ import jakarta.validation.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindException;
@@ -195,7 +196,7 @@ public class GlobalExceptionHandler {
         ApiErrorResponse body = new ApiErrorResponse(
                 Instant.now(),
                 status.value(),
-                status.getReasonPhrase(),
+                ProblemDetail.forStatus(status).getTitle(),
                 message,
                 path,
                 fields

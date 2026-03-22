@@ -3,9 +3,9 @@ spring:
     name: "gbcc-website-backend"
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/gbcc
-    username: username
-    password: password
+    url: jdbc:postgresql://localhost:5510/gbcc
+    username: GBCC
+    password: GBCC!05510
     name: gbcc
     driver-class-name: org.postgresql.Driver
 
@@ -26,22 +26,31 @@ spring:
 
 app:
   jwt:
-    secret: secret
+    secret: c9f4c0a9d9e4f6b1a3c7e5f9b2d8a6c1e4f7a9c3d6b8e1f2a5c7d9e3b6f1a8c4
     access-token-ttl-minutes: 15
     refresh-token-ttl-days: 30
     cookie-secure: false
     cookie-same-site: Lax
   account:
     owner:
-      email: email
-      password: password
+      email: gbcc@gmail.com
+      password: GBCC!05510
   file:
     bucket: storage
 
   swagger:
-    title: "GBCC API"
-    description: "Документация API"
-    version: "0.1.0"
+    title: "GBCC Website API"
+    description: |
+      REST API интернет-магазина / каталога GBCC: аутентификация (JWT в HttpOnly cookies),
+      аккаунты, каталог товаров и файлы, новости, акции (скидки), заказы, обращения в поддержку.
+
+      **Авторизация в Swagger UI:** схема `accessTokenCookie` — cookie `GBCC_ACCESS_TOKEN`
+      (после успешного `POST /auth/login` в том же браузере cookie подставляется автоматически;
+      при тестах из Postman — передайте cookie вручную).
+
+      **Гостевой токен поддержки:** схема `supportGuestToken` — заголовок `X-Support-Token`
+      (значение из `guestAccessToken` после создания обращения без входа).
+    version: "0.2.0"
 
     servers:
       - url: "http://localhost:8080"
