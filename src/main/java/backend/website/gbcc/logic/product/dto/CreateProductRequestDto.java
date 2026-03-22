@@ -14,6 +14,10 @@ public record CreateProductRequestDto(
         @NotBlank(message = "brand is required")
         String brand,
         String description,
+        String tagline,
+        String tags,
+        String deliveryText,
+        String licensesText,
         @NotNull(message = "heightMm is required")
         @Positive(message = "heightMm must be greater than 0")
         Integer heightMm,
@@ -29,6 +33,8 @@ public record CreateProductRequestDto(
         @NotNull(message = "price is required")
         @DecimalMin(value = "0.01", message = "price must be greater than 0")
         BigDecimal price,
+        @DecimalMin(value = "0.0", message = "discountPercent must be greater or equal to 0")
+        BigDecimal discountPercent,
         Boolean isActive
 ) {
 }

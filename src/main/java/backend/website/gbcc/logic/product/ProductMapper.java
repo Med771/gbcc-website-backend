@@ -9,6 +9,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,7 +30,14 @@ public interface ProductMapper {
     @Mapping(target = "lengthMm", source = "request.lengthMm")
     @Mapping(target = "weightKg", source = "request.weightKg")
     @Mapping(target = "price", source = "request.price")
+    @Mapping(target = "discountPercent", expression = "java(resolveDiscountPercent(request.discountPercent()))")
     @Mapping(target = "isActive", expression = "java(resolveIsActive(request))")
+    @Mapping(target = "popularityScore", constant = "0")
+    @Mapping(target = "interestCount", constant = "0")
+    @Mapping(target = "tagline", source = "request.tagline")
+    @Mapping(target = "tags", source = "request.tags")
+    @Mapping(target = "deliveryText", source = "request.deliveryText")
+    @Mapping(target = "licensesText", source = "request.licensesText")
     ProductEntity toEntity(
             CreateProductRequestDto request,
             ProductClassEntity productClass,
@@ -40,6 +49,14 @@ public interface ProductMapper {
     @Mapping(target = "className", expression = "java(entity.getProductClass().getName())")
     @Mapping(target = "seriesName", expression = "java(entity.getProductSeries() != null ? entity.getProductSeries().getName() : null)")
     @Mapping(target = "typeName", expression = "java(entity.getProductType() != null ? entity.getProductType().getName() : null)")
+    @Mapping(target = "tagline", source = "entity.tagline")
+    @Mapping(target = "tags", source = "entity.tags")
+    @Mapping(target = "interestCount", source = "entity.interestCount")
+    @Mapping(target = "deliveryText", source = "entity.deliveryText")
+    @Mapping(target = "licensesText", source = "entity.licensesText")
+    @Mapping(target = "popularityScore", source = "entity.popularityScore")
+    @Mapping(target = "discountPercent", source = "entity.discountPercent")
+    @Mapping(target = "discountedPrice", expression = "java(calculateDiscountedPrice(entity.getPrice(), entity.getDiscountPercent()))")
     @Mapping(target = "photoFileIds", source = "photoFileIds")
     @Mapping(target = "createdAt", source = "entity.createdAt")
     @Mapping(target = "updatedAt", source = "entity.updatedAt")
@@ -47,6 +64,19 @@ public interface ProductMapper {
 
     default Boolean resolveIsActive(CreateProductRequestDto request) {
         return request.isActive() != null ? request.isActive() : Boolean.TRUE;
+    }
+
+    default BigDecimal resolveDiscountPercent(BigDecimal discountPercent) {
+        return discountPercent != null ? discountPercent : BigDecimal.ZERO;
+    }
+
+    default BigDecimal calculateDiscountedPrice(BigDecimal price, BigDecimal discountPercent) {
+        if (price == null) {
+            return null;
+        }
+        BigDecimal safeDiscount = discountPercent != null ? discountPercent : BigDecimal.ZERO;
+        BigDecimal multiplier = BigDecimal.ONE.subtract(safeDiscount.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP));
+        return price.multiply(multiplier).setScale(2, RoundingMode.HALF_UP);
     }
 
     default String normalize(String value) {

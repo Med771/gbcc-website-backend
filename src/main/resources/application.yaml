@@ -25,6 +25,16 @@ spring:
     out-of-order: true
 
 app:
+  jwt:
+    secret: secret
+    access-token-ttl-minutes: 15
+    refresh-token-ttl-days: 30
+    cookie-secure: false
+    cookie-same-site: Lax
+  account:
+    owner:
+      email: email
+      password: password
   file:
     bucket: storage
 
@@ -36,6 +46,15 @@ app:
     servers:
       - url: "http://localhost:8080"
         description: "Local Dev Server"
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: alpha
+    display-request-duration: true
 
 logging:
   level:
