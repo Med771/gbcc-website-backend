@@ -27,6 +27,9 @@ RUN useradd -r -u 1001 appuser
 
 COPY --from=builder /app/target/*.jar app.jar
 
+# Logback пишет в logs/app.log относительно WORKDIR — каталог должен существовать и принадлежать appuser (иначе Permission denied).
+RUN mkdir -p /app/logs && chown appuser:appuser /app/logs
+
 USER appuser
 
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=75", "-jar", "app.jar"]
