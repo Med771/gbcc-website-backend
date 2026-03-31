@@ -38,6 +38,11 @@ app:
   file:
     bucket: storage
 
+  referral:
+    link-base-url: "http://localhost:3000/ref"
+    commission-percent: 5
+    min-withdrawal-amount: 1000
+
   swagger:
     title: "GBCC Website API"
     description: |

@@ -8,6 +8,7 @@ import backend.website.gbcc.logic.order.dto.CreateOrderRequestDto;
 import backend.website.gbcc.logic.order.dto.OrderResponseDto;
 import backend.website.gbcc.logic.order.dto.OrderSearchRequestDto;
 import backend.website.gbcc.logic.order.dto.UpdateOrderStatusRequestDto;
+import backend.website.gbcc.logic.referral.ReferralService;
 import backend.website.gbcc.logic.product.ProductEntity;
 import backend.website.gbcc.logic.product.ProductRepository;
 import backend.website.gbcc.logic.promotion.PromotionDiscountResolver;
@@ -46,6 +47,7 @@ public class OrderServiceImpl implements OrderService {
     private final SecurityContextHelper securityContextHelper;
     private final OrderMapper orderMapper;
     private final PromotionDiscountResolver promotionDiscountResolver;
+    private final ReferralService referralService;
 
     @Override
     @Transactional
@@ -187,6 +189,9 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
 
         addHistory(order, fromStatus, toStatus, requester, comment, order.getEstimatedDeliveryAt());
+        if (toStatus == OrderStatus.DELIVERED) {
+            referralService.onOrderDelivered(orderId);
+        }
         return buildResponse(orderId);
     }
 
@@ -217,7 +222,7 @@ public class OrderServiceImpl implements OrderService {
             case PROCESSING -> toStatus == OrderStatus.PACKED || toStatus == OrderStatus.CANCELLED;
             case PACKED -> toStatus == OrderStatus.SHIPPED || toStatus == OrderStatus.CANCELLED;
             case SHIPPED -> toStatus == OrderStatus.DELIVERED || toStatus == OrderStatus.CANCELLED;
-            case DELIVERED, CANCELLED -> false;
+            default -> throw new IllegalStateException("Unexpected value: " + fromStatus);
         };
 
         if (!valid) {

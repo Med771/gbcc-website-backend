@@ -11,6 +11,7 @@ import backend.website.gbcc.logic.order.dto.UpdateOrderStatusRequestDto;
 import backend.website.gbcc.logic.product.ProductEntity;
 import backend.website.gbcc.logic.product.ProductRepository;
 import backend.website.gbcc.logic.promotion.PromotionDiscountResolver;
+import backend.website.gbcc.logic.referral.ReferralService;
 import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.OrderPaymentMethod;
 import backend.website.gbcc.model.OrderStatus;
@@ -58,6 +59,8 @@ class OrderServiceImplTest {
     private OrderMapper orderMapper;
     @Mock
     private PromotionDiscountResolver promotionDiscountResolver;
+    @Mock
+    private ReferralService referralService;
 
     @InjectMocks
     private OrderServiceImpl orderService;

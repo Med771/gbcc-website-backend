@@ -1,6 +1,7 @@
 package backend.website.gbcc.logic.account;
 
 import backend.website.gbcc.helper.SecurityContextHelper;
+import backend.website.gbcc.logic.referral.ReferralService;
 import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.AccountSearchRequestDto;
 import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
@@ -31,6 +32,7 @@ public class AccountServiceImpl implements AccountService {
     private final AccountRepository accountRepository;
     private final AccountMapper accountMapper;
     private final SecurityContextHelper securityContextHelper;
+    private final ReferralService referralService;
 
     private final PasswordEncoder passwordEncoder;
 
@@ -64,7 +66,10 @@ public class AccountServiceImpl implements AccountService {
         entity.setIsPasswordSet(Boolean.TRUE);
         entity.setPasswordHash(passwordEncoder.encode(requestDto.password()));
         entity.setIsBlocked(Boolean.FALSE);
-        return accountMapper.toResponse(saveAccount(entity));
+        referralService.bindInviterForNewCustomer(entity, requestDto.inviteCode());
+        AccountEntity saved = saveAccount(entity);
+        referralService.assignReferralCodeIfMissing(saved.getId());
+        return accountMapper.toResponse(saved);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package backend.website.gbcc.logic.account;
 
 import backend.website.gbcc.helper.SecurityContextHelper;
+import backend.website.gbcc.logic.referral.ReferralService;
 import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
@@ -22,6 +23,8 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -40,6 +43,9 @@ class AccountServiceImplTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private ReferralService referralService;
 
     @InjectMocks
     private AccountServiceImpl accountService;
@@ -197,7 +203,8 @@ class AccountServiceImplTest {
                 null,
                 "+123456789",
                 "CUSTOMER@mail.com",
-                "Password123"
+                "Password123",
+                null
         );
         AccountEntity savedEntity = new AccountEntity();
         savedEntity.setId(UUID.randomUUID());
@@ -230,6 +237,9 @@ class AccountServiceImplTest {
         when(passwordEncoder.encode(org.mockito.ArgumentMatchers.anyString())).thenReturn("$2a$hash");
 
         AccountResponseDto result = accountService.registerCustomer(request);
+
+        verify(referralService).bindInviterForNewCustomer(any(AccountEntity.class), eq(null));
+        verify(referralService).assignReferralCodeIfMissing(savedEntity.getId());
 
         assertThat(result.role()).isEqualTo(AccountRole.CUSTOMER);
         assertThat(result.registrationStatus()).isEqualTo(AccountRegistrationStatus.ACTIVE);

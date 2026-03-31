@@ -66,7 +66,7 @@ public class AccountController {
         return accountService.createAdmin(requestDto);
     }
 
-    @Operation(summary = "Регистрация клиента", description = "Публичный endpoint. Создаёт CUSTOMER с активным статусом и паролем.")
+    @Operation(summary = "Регистрация клиента", description = "Публичный endpoint. Создаёт CUSTOMER с активным статусом и паролем. Поле inviteCode опционально: реферальный код пригласителя.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Клиент зарегистрирован",
                     content = @Content(schema = @Schema(implementation = AccountResponseDto.class))),

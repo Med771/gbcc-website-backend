@@ -8,6 +8,9 @@ import backend.website.gbcc.model.convector.AccountRoleConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -54,4 +57,11 @@ public class AccountEntity extends BaseEntity {
 
     @Column(name = "is_blocked", nullable = false)
     private Boolean isBlocked = false;
+
+    @Column(name = "referral_code", unique = true)
+    private String referralCode;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "referred_by_account_id")
+    private AccountEntity referredBy;
 }

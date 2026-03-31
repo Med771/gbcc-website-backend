@@ -52,6 +52,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/contact-requests/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/contact-requests/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/cooperation-requests").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/referral/clicks").permitAll()
+                        .requestMatchers("/referral/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/cooperation-requests").authenticated()
                         .requestMatchers(HttpMethod.GET, "/cooperation-requests/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/cooperation-requests/**").authenticated()

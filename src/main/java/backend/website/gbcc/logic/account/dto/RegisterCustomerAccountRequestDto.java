@@ -20,6 +20,8 @@ public record RegisterCustomerAccountRequestDto(
         String email,
         @NotBlank(message = "password is required")
         @Size(min = 8, message = "password must contain at least 8 characters")
-        String password
+        String password,
+        @Size(max = 64)
+        String inviteCode
 ) {
 }

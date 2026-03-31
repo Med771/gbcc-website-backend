@@ -62,7 +62,8 @@ public class SwaggerConfig {
                         new Tag().name("News").description("Новости: публичное чтение; создание/редактирование — ADMIN/OWNER."),
                         new Tag().name("Promotions").description("Акции (скидки по правилам и охвату). Публичный список; изменение — ADMIN/OWNER."),
                         new Tag().name("Orders").description("Заказы: оформление клиентом, просмотр, смена статуса (менеджеры)."),
-                        new Tag().name("Support").description("Обращения в администрацию: гости (токен), клиенты (JWT), ответы админов.")
+                        new Tag().name("Support").description("Обращения в администрацию: гости (токен), клиенты (JWT), ответы админов."),
+                        new Tag().name("Referrals").description("Реферальная программа: клики, коды, бонусы с заказов, вывод; отчёты для ADMIN/OWNER.")
                 ));
     }
 }
