@@ -8,14 +8,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
 import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_ADMIN;
 import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_CUSTOMER;
+import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_OWNER;
 import static backend.website.gbcc.web.WebMvcTestFixtures.UUID_1;
 import static backend.website.gbcc.web.WebMvcTestFixtures.sampleOrderResponse;
 import static org.mockito.ArgumentMatchers.any;
@@ -111,5 +114,49 @@ class OrderControllerWebMvcTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(PATCH_STATUS_JSON))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void updateStatus_withOwner_returns200() throws Exception {
+        when(orderService.updateStatus(eq(UUID_1), any())).thenReturn(sampleOrderResponse(UUID_1));
+
+        mockMvc.perform(patch("/order/{orderId}/status", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_OWNER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(PATCH_STATUS_JSON))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void updateStatus_withCustomer_returns403() throws Exception {
+        when(orderService.updateStatus(eq(UUID_1), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin or owner can update order status"));
+
+        mockMvc.perform(patch("/order/{orderId}/status", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_CUSTOMER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(PATCH_STATUS_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updateStatus_whenOrderNotFound_returns404() throws Exception {
+        when(orderService.updateStatus(eq(UUID_1), any()))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        mockMvc.perform(patch("/order/{orderId}/status", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(PATCH_STATUS_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void updateStatus_malformedJson_returns400() throws Exception {
+        mockMvc.perform(patch("/order/{orderId}/status", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{invalid"))
+                .andExpect(status().isBadRequest());
     }
 }

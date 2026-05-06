@@ -39,6 +39,11 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public AccountResponseDto createAdmin(CreateAdminAccountRequestDto requestDto) {
+        AccountEntity actor = findByIdOrThrow(securityContextHelper.getCurrentAccountIdOrThrow());
+        if (actor.getRole() != AccountRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only owner can create administrator accounts");
+        }
+
         String passwordHash = passwordEncoder.encode(requestDto.password());
         CreateAdminAccountRequestDto normalizedRequest = new CreateAdminAccountRequestDto(
                 normalizeRequired(requestDto.name(), "name"),
@@ -114,8 +119,15 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public AccountResponseDto activateCustomer(UUID accountId, ActivateCustomerAccountRequestDto requestDto) {
+        UUID requesterId = securityContextHelper.getCurrentAccountIdOrThrow();
+        AccountEntity requester = findByIdOrThrow(requesterId);
         AccountEntity entity = findByIdOrThrow(accountId);
         ensureCustomerOrThrow(entity);
+
+        boolean selfService = requesterId.equals(accountId);
+        if (!selfService && requester.getRole() != AccountRole.ADMIN && requester.getRole() != AccountRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
 
         if (Boolean.TRUE.equals(entity.getIsBlocked())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account is blocked");
@@ -130,8 +142,9 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public void deleteCustomer(UUID accountId) {
+        AccountEntity requester = findByIdOrThrow(securityContextHelper.getCurrentAccountIdOrThrow());
         AccountEntity entity = findByIdOrThrow(accountId);
-        ensureCustomerOrThrow(entity);
+        ensureDeleteAccountPermission(requester, entity);
         accountRepository.delete(entity);
     }
 
@@ -168,6 +181,10 @@ public class AccountServiceImpl implements AccountService {
     public Page<AccountResponseDto> search(AccountSearchRequestDto requestDto, Pageable pageable) {
         UUID requesterAccountId = securityContextHelper.getCurrentAccountIdOrThrow();
         AccountEntity requester = findByIdOrThrow(requesterAccountId);
+        if (requester.getRole() == AccountRole.CUSTOMER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Customers cannot search accounts");
+        }
+
         AccountSearchRequestDto safeRequest = requestDto != null
                 ? requestDto
                 : new AccountSearchRequestDto(null, null, null, null, null);
@@ -187,7 +204,9 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public void block(UUID accountId) {
+        AccountEntity requester = findByIdOrThrow(securityContextHelper.getCurrentAccountIdOrThrow());
         AccountEntity account = findByIdOrThrow(accountId);
+        ensureModeratorCanChangeBlockState(requester, account);
         account.setIsBlocked(Boolean.TRUE);
         accountRepository.save(account);
     }
@@ -195,7 +214,9 @@ public class AccountServiceImpl implements AccountService {
     @Override
     @Transactional
     public void unblock(UUID accountId) {
+        AccountEntity requester = findByIdOrThrow(securityContextHelper.getCurrentAccountIdOrThrow());
         AccountEntity account = findByIdOrThrow(accountId);
+        ensureModeratorCanChangeBlockState(requester, account);
         account.setIsBlocked(Boolean.FALSE);
         accountRepository.save(account);
     }
@@ -251,6 +272,45 @@ public class AccountServiceImpl implements AccountService {
     private void ensureCustomerOrThrow(AccountEntity account) {
         if (account.getRole() != AccountRole.CUSTOMER) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Account is not customer");
+        }
+    }
+
+    private void ensureDeleteAccountPermission(AccountEntity requester, AccountEntity target) {
+        if (target.getRole() == AccountRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner account cannot be deleted via this API");
+        }
+        if (requester.getRole() == AccountRole.CUSTOMER) {
+            if (!requester.getId().equals(target.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+            }
+            if (target.getRole() != AccountRole.CUSTOMER) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+            }
+            return;
+        }
+        if (requester.getRole() == AccountRole.ADMIN) {
+            if (target.getRole() != AccountRole.CUSTOMER) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin can delete only customer accounts");
+            }
+            return;
+        }
+        if (requester.getRole() == AccountRole.OWNER) {
+            if (target.getRole() == AccountRole.CUSTOMER || target.getRole() == AccountRole.ADMIN) {
+                return;
+            }
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+    }
+
+    private void ensureModeratorCanChangeBlockState(AccountEntity requester, AccountEntity target) {
+        if (requester.getRole() == AccountRole.CUSTOMER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+        if (target.getRole() == AccountRole.OWNER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Owner account cannot be blocked this way");
+        }
+        if (requester.getRole() == AccountRole.ADMIN && target.getRole() != AccountRole.CUSTOMER) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin can manage only customer accounts");
         }
     }
 

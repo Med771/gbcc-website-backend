@@ -30,7 +30,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/product").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/product/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/product/**").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/product/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/product/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/news").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/news/**").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/news/**").authenticated()
@@ -59,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/cooperation-requests/**").authenticated()
                         .requestMatchers("/order/**").authenticated()
                         .requestMatchers("/account/**").authenticated()
+                        .requestMatchers("/crm/**").authenticated()
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

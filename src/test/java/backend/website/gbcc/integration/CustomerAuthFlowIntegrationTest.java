@@ -18,6 +18,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -43,14 +44,18 @@ class CustomerAuthFlowIntegrationTest {
     @Test
     void registerAndLogin_shouldReturn200AndSetCookies() {
         String email = "cust-" + UUID.randomUUID() + "@example.com";
+        String phone = String.format("+79%09d", ThreadLocalRandom.current().nextInt(100_000_000, 1_000_000_000));
         String registerBody = """
                 {
-                  "name": "Integration User",
-                  "phone": "+10000000001",
+                  "firstName": "Integration",
+                  "lastName": "User",
+                  "patronymic": null,
+                  "phone": "%s",
                   "email": "%s",
-                  "password": "Password123!"
+                  "password": "Password123!",
+                  "inviteCode": null
                 }
-                """.formatted(email);
+                """.formatted(phone, email);
 
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -80,14 +85,18 @@ class CustomerAuthFlowIntegrationTest {
     @Test
     void registerDuplicateEmail_shouldReturnConflict() {
         String email = "dup-" + UUID.randomUUID() + "@example.com";
+        String phone = String.format("+79%09d", ThreadLocalRandom.current().nextInt(100_000_000, 1_000_000_000));
         String body = """
                 {
-                  "name": "A",
-                  "phone": "+10000000002",
+                  "firstName": "Dup",
+                  "lastName": "User",
+                  "patronymic": null,
+                  "phone": "%s",
                   "email": "%s",
-                  "password": "Password123!"
+                  "password": "Password123!",
+                  "inviteCode": null
                 }
-                """.formatted(email);
+                """.formatted(phone, email);
 
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.setContentType(MediaType.APPLICATION_JSON);

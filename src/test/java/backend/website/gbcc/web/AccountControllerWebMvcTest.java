@@ -12,14 +12,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
 
 import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_ADMIN;
 import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_CUSTOMER;
+import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_OWNER;
 import static backend.website.gbcc.web.WebMvcTestFixtures.UUID_2;
 import static backend.website.gbcc.web.WebMvcTestFixtures.sampleAccountResponse;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -48,14 +51,25 @@ class AccountControllerWebMvcTest {
     }
 
     @Test
-    void createAdmin_withAuth_returns201() throws Exception {
+    void createAdmin_withOwner_returns201() throws Exception {
         when(accountService.createAdmin(any())).thenReturn(sampleAccountResponse(AccountRole.ADMIN));
 
         mockMvc.perform(post("/account/admin")
-                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
+                        .with(ControllerTestSupport.principal(PRINCIPAL_OWNER))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"Admin\",\"email\":\"admin@a.com\",\"password\":\"password12\"}"))
                 .andExpect(status().isCreated());
+    }
+
+    @Test
+    void createAdmin_withCustomer_returns403() throws Exception {
+        when(accountService.createAdmin(any())).thenThrow(new ResponseStatusException(FORBIDDEN));
+
+        mockMvc.perform(post("/account/admin")
+                        .with(ControllerTestSupport.principal(PRINCIPAL_CUSTOMER))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Admin\",\"email\":\"admin@a.com\",\"password\":\"password12\"}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

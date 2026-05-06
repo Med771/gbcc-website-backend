@@ -49,7 +49,7 @@ import java.util.UUID;
 @Validated
 @Tag(name = "Products", description = """
         Каталог: CRUD товара, поиск с фильтрами, сгруппированный поиск /product/search/grouped для мобильного меню,
-        привязка фото (файл по UUID). Создание товара сейчас разрешено без JWT (см. SecurityConfig).
+        привязка фото (файл по UUID). Создание и изменение товара и фото — только JWT ролей ADMIN или OWNER (см. SecurityConfig и ProductServiceImpl).
         """)
 public class ProductController {
 

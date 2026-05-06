@@ -6,7 +6,7 @@
 
 | Область | Что уже есть | Что усилить |
 |---------|----------------|-------------|
-| `logic/order` | `OrderServiceImplTest`, `OrderControllerWebMvcTest` | Граничные кейсы позиций, неактивный товар, смена статусов |
+| `logic/order` | Матрица переходов статусов и негативы в `OrderServiceImplTest` / `OrderControllerWebMvcTest`, E2E `OrderLifecycleIntegrationTest` (Docker) | Граничные кейсы позиций, неактивный товар, доп. WebMvc по edge-кейсам |
 | `logic/account` | `AccountServiceImplTest`, `AccountControllerWebMvcTest` | Конфликты email/phone, права ADMIN при поиске |
 | `logic/auth` | `AuthServiceImplTest`, `AuthControllerWebMvcTest` | Refresh rotation, logout, blocked account |
 | `filter`, `helper` | `JwtAuthenticationFilterTest`, `JwtTokenHelperTest`, `AuthCookieHelperTest`, `SecurityContextHelperTest` | Невалидный JWT, истёкший токен (если появится проверка) |

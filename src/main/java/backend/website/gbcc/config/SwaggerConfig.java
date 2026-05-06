@@ -63,7 +63,14 @@ public class SwaggerConfig {
                         new Tag().name("Promotions").description("Акции (скидки по правилам и охвату). Публичный список; изменение — ADMIN/OWNER."),
                         new Tag().name("Orders").description("Заказы: оформление клиентом, просмотр, смена статуса (менеджеры)."),
                         new Tag().name("Support").description("Обращения в администрацию: гости (токен), клиенты (JWT), ответы админов."),
-                        new Tag().name("Referrals").description("Реферальная программа: клики, коды, бонусы с заказов, вывод; отчёты для ADMIN/OWNER.")
+                        new Tag().name("Referrals").description("Реферальная программа: клики, коды, бонусы с заказов, вывод; отчёты для ADMIN/OWNER."),
+                        new Tag().name("CRM — Organizations").description("Карточки организаций (B2B), контакты, история изменений контактов. JWT ADMIN/OWNER."),
+                        new Tag().name("CRM — Interactions").description("Журнал взаимодействий (звонки, встречи): дата, результат, следующий шаг."),
+                        new Tag().name("CRM — Tasks").description("Задачи и перезвоны: срок, исполнитель, фильтры «ближайшие / просроченные»."),
+                        new Tag().name("CRM — Leads").description("Холодная база лидов, статусы, конвертация в организацию."),
+                        new Tag().name("CRM — Supplies").description("Поставки и долгосрочные контракты (ручные статусы и график)."),
+                        new Tag().name("CRM — Map").description("Точки на карте (координаты вводятся вручную)."),
+                        new Tag().name("CRM — Metrics").description("Сводные метрики по CRM (только чтение, без внешних систем).")
                 ));
     }
 }

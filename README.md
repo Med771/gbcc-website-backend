@@ -1,6 +1,6 @@
 # GBCC Website Backend
 
-REST API для сайта GBCC: каталог товаров, файлы, новости, акции (скидки), заказы, учётные записи с JWT в cookies, обращения в поддержку (в т.ч. от гостей), заявки с формы обратной связи («Свяжитесь с нами»).
+REST API для сайта GBCC: каталог товаров, файлы, новости, акции (скидки), заказы, учётные записи с JWT в cookies, обращения в поддержку (в т.ч. от гостей), заявки с формы обратной связи («Свяжитесь с нами»), **модуль CRM** (`/crm/**`: организации, лиды, взаимодействия, задачи, B2B-поставки и контракты, карта, метрики).
 
 Полная интерактивная документация: **Swagger UI** — после запуска приложения откройте в браузере:
 
@@ -29,11 +29,29 @@ OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-d
 - `config` — Security, JWT, Swagger/OpenAPI, JPA auditing, инициализация owner-аккаунта
 - `filter` — JWT из cookie `GBCC_ACCESS_TOKEN`
 - `handler` — `GlobalExceptionHandler`, единый формат `ApiErrorResponse`
-- `logic/*` — домены: `auth`, `account`, `product`, `file`, `news`, `promotion`, `order`, `support`, `contactrequest`
+- `logic/*` — домены: `auth`, `account`, `product`, `file`, `news`, `promotion`, `order`, `support`, `contactrequest`, **`crm`** (организации, лиды, interactions, tasks, supplies, contracts, map, metrics)
 - `model` — общие enum, DTO ошибок, базовые сущности
 - `resources/db/migration` — SQL миграции Flyway (`V###__description.sql`)
-- `test` — unit-тесты (Mockito), WebMvc-срезы (`@GbccWebMvcTest`), интеграционные тесты с Testcontainers (тег `requires-docker`)
-- `docs/TEST_COVERAGE_GAPS.md` — приоритеты покрытия и пробелы
+- `test` — unit-тесты (Mockito), WebMvc-срезы (`@GbccWebMvcTest`), интеграционные тесты с Testcontainers (тег `requires-docker`). По умолчанию `mvn test` их **не запускает** (исключена группа `requires-docker`). Полный прогон с PostgreSQL в Docker: `mvn verify -Pintegration-tests` (нужен запущенный Docker Desktop / engine).
+- `docs/TZ_CRM_BACKEND_ALIGNMENT.md` — сверка ТЗ CRM с реализацией
+- `docs/EXPERT_GUIDE.md` — единый экспертный обзор (роли, B2C/B2B, безопасность, тесты, ссылки на остальные документы)
+
+---
+
+## CRM API (`/crm/**`)
+
+Доступ: **JWT** (роли **ADMIN** или **OWNER**). В Swagger — схема `accessTokenCookie`. **CUSTOMER** получает 403 на бизнес-операциях CRM.
+
+- **Организации:** `GET/POST/PUT /crm/organizations`, `PATCH /crm/organizations/{id}/assign` (только OWNER), контакты под `/crm/organizations/{id}/contacts`, история `.../contacts/{contactId}/history`.
+- **Взаимодействия:** `/crm/interactions` (ровно одно из `organizationId` или `leadId` в теле).
+- **Задачи:** `/crm/tasks`, `GET /crm/tasks/overdue`.
+- **Лиды:** `/crm/leads`, `POST /crm/leads/{id}/convert` → создаётся организация.
+- **Поставки B2B:** `/crm/supplies` (отдельно от заказов витрины `/order`).
+- **Контракты и график:** `/crm/contracts`, строки `.../contracts/{id}/lines`.
+- **Карта:** `GET /crm/map/pins`, объекты компании `.../map/company-objects`.
+- **Метрики:** `GET /crm/metrics/summary` (агрегаты в рамках скоупа: OWNER — всё, ADMIN — только назначенные на него сущности / свои задачи).
+
+Менеджер в ТЗ соответствует роли **ADMIN**; руководитель — **OWNER**. Координаты и статусы вводятся вручную, внешние интеграции не используются.
 
 ---
 
@@ -71,6 +89,7 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 | **Orders** | Заказы: история (**GET /order**), карточка с номером, оплатой, окном доставки, чеком; CUSTOMER создаёт; менеджеры меняют статус |
 | **Support** | Обращения в администрацию; гости с токеном `X-Support-Token` |
 | **Contact requests** | Заявки с формы на сайте: публичная отправка; список и «взять на изучение» — ADMIN/OWNER |
+| **CRM — Organizations** … **CRM — Metrics** | Модуль CRM под префиксом `/crm/**` (см. раздел **CRM API** выше) |
 
 ---
 
@@ -119,7 +138,7 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 
 ### Каталог и заказы
 
-- Товары и файлы: публичные операции см. Swagger (часть мутаций может быть открыта — сверяйтесь с `SecurityConfig`).
+- Каталог: чтение и поиск товаров — по правилам `SecurityConfig` (часто без JWT). **Создание и изменение товаров и фото** (`POST`/`PUT`/`PATCH`/`DELETE` под `/product/**`) — только с JWT ролей **ADMIN** или **OWNER** (проверка и в Security, и в `ProductServiceImpl`).
 - **POST `/order`** — только авторизованный **CUSTOMER** с JWT cookie; в теле — **paymentMethod** (`CARD_ONLINE` или `CARD_OR_ON_RECEIPT` и т.д., см. Swagger).
 - **GET `/order`** — история заказов текущего клиента (пагинация); в каждой записи: **displayNumber** (короткий номер), **statusLabel**, **paymentMethodLabel**, суммы, **estimatedDeliveryAt** / **estimatedDeliveryEnd**, **receiptUrl**, позиции с названиями класса/серии/типа товара.
 

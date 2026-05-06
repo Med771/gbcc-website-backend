@@ -17,6 +17,10 @@ import backend.website.gbcc.model.OrderPaymentMethod;
 import backend.website.gbcc.model.OrderStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,18 +31,24 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @ExtendWith(MockitoExtension.class)
 class OrderServiceImplTest {
@@ -64,6 +74,340 @@ class OrderServiceImplTest {
 
     @InjectMocks
     private OrderServiceImpl orderService;
+
+    static Stream<Arguments> validStatusTransitions() {
+        return Stream.of(
+                Arguments.of(OrderStatus.CREATED, OrderStatus.PROCESSING, false),
+                Arguments.of(OrderStatus.CREATED, OrderStatus.CANCELLED, false),
+                Arguments.of(OrderStatus.PROCESSING, OrderStatus.PACKED, false),
+                Arguments.of(OrderStatus.PROCESSING, OrderStatus.CANCELLED, false),
+                Arguments.of(OrderStatus.PACKED, OrderStatus.SHIPPED, false),
+                Arguments.of(OrderStatus.PACKED, OrderStatus.CANCELLED, false),
+                Arguments.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED, false),
+                Arguments.of(OrderStatus.SHIPPED, OrderStatus.DELIVERED, true)
+        );
+    }
+
+    @ParameterizedTest(name = "{0} -> {1}")
+    @MethodSource("validStatusTransitions")
+    void updateStatus_validTransition_persistsHistoryAndReferralOnlyOnDelivered(
+            OrderStatus from,
+            OrderStatus to,
+            boolean expectReferral
+    ) {
+        UUID managerId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity manager = new AccountEntity();
+        manager.setId(managerId);
+        manager.setRole(AccountRole.ADMIN);
+
+        AccountEntity customer = new AccountEntity();
+        customer.setId(customerId);
+        customer.setRole(AccountRole.CUSTOMER);
+
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(customer);
+        order.setStatus(from);
+
+        stubManagerAndOrder(managerId, manager, orderId, order);
+        stubBuildResponse(orderId, order, customerId);
+
+        UpdateOrderStatusRequestDto request = new UpdateOrderStatusRequestDto(
+                to,
+                null,
+                null,
+                null,
+                "note"
+        );
+
+        orderService.updateStatus(orderId, request);
+
+        assertThat(order.getStatus()).isEqualTo(to);
+
+        ArgumentCaptor<OrderStatusHistoryEntity> historyCaptor = ArgumentCaptor.forClass(OrderStatusHistoryEntity.class);
+        verify(orderStatusHistoryRepository).save(historyCaptor.capture());
+        OrderStatusHistoryEntity savedHistory = historyCaptor.getValue();
+        assertThat(savedHistory.getFromStatus()).isEqualTo(from);
+        assertThat(savedHistory.getToStatus()).isEqualTo(to);
+        assertThat(savedHistory.getChangedByAccount().getId()).isEqualTo(managerId);
+
+        if (expectReferral) {
+            verify(referralService).onOrderDelivered(orderId);
+        } else {
+            verify(referralService, never()).onOrderDelivered(any());
+        }
+    }
+
+    @Test
+    void updateStatus_withOwnerRole_succeeds() {
+        UUID ownerId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity owner = new AccountEntity();
+        owner.setId(ownerId);
+        owner.setRole(AccountRole.OWNER);
+
+        AccountEntity customer = new AccountEntity();
+        customer.setId(customerId);
+
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(customer);
+        order.setStatus(OrderStatus.CREATED);
+
+        stubManagerAndOrder(ownerId, owner, orderId, order);
+        stubBuildResponse(orderId, order, customerId);
+
+        orderService.updateStatus(
+                orderId,
+                new UpdateOrderStatusRequestDto(OrderStatus.PROCESSING, null, null, null, null)
+        );
+
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PROCESSING);
+        verify(referralService, never()).onOrderDelivered(any());
+    }
+
+    @Test
+    void updateStatus_sameStatus_throwsBadRequest() {
+        UUID adminId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+
+        AccountEntity customer = new AccountEntity();
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(customer);
+        order.setStatus(OrderStatus.PROCESSING);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(adminId);
+        when(accountRepository.findById(adminId)).thenReturn(Optional.of(admin));
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateStatus(
+                orderId,
+                new UpdateOrderStatusRequestDto(OrderStatus.PROCESSING, null, null, null, null)
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
+                .isEqualTo(BAD_REQUEST.value());
+    }
+
+    @Test
+    void updateStatus_fromDelivered_throwsBadRequest() {
+        UUID adminId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(new AccountEntity());
+        order.setStatus(OrderStatus.DELIVERED);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(adminId);
+        when(accountRepository.findById(adminId)).thenReturn(Optional.of(admin));
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateStatus(
+                orderId,
+                new UpdateOrderStatusRequestDto(OrderStatus.PROCESSING, null, null, null, null)
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
+                .isEqualTo(BAD_REQUEST.value());
+    }
+
+    @Test
+    void updateStatus_toDelivered_withDeliveryWindow_throwsBadRequest() {
+        UUID adminId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(new AccountEntity());
+        order.setStatus(OrderStatus.SHIPPED);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(adminId);
+        when(accountRepository.findById(adminId)).thenReturn(Optional.of(admin));
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        Instant at = Instant.parse("2026-01-01T00:00:00Z");
+        assertThatThrownBy(() -> orderService.updateStatus(
+                orderId,
+                new UpdateOrderStatusRequestDto(OrderStatus.DELIVERED, at, null, null, null)
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
+                .isEqualTo(BAD_REQUEST.value());
+    }
+
+    @Test
+    void updateStatus_toProcessing_setsDeliveryWindowOnOrder() {
+        UUID adminId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+
+        AccountEntity customer = new AccountEntity();
+        customer.setId(customerId);
+
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(customer);
+        order.setStatus(OrderStatus.CREATED);
+
+        stubManagerAndOrder(adminId, admin, orderId, order);
+        stubBuildResponse(orderId, order, customerId);
+
+        Instant start = Instant.parse("2026-03-01T08:00:00Z");
+        Instant end = Instant.parse("2026-03-05T18:00:00Z");
+
+        orderService.updateStatus(
+                orderId,
+                new UpdateOrderStatusRequestDto(OrderStatus.PROCESSING, start, end, null, null)
+        );
+
+        assertThat(order.getEstimatedDeliveryAt()).isEqualTo(start);
+        assertThat(order.getEstimatedDeliveryEnd()).isEqualTo(end);
+        assertThat(order.getStatus()).isEqualTo(OrderStatus.PROCESSING);
+
+        ArgumentCaptor<OrderStatusHistoryEntity> historyCaptor = ArgumentCaptor.forClass(OrderStatusHistoryEntity.class);
+        verify(orderStatusHistoryRepository).save(historyCaptor.capture());
+        assertThat(historyCaptor.getValue().getEstimatedDeliveryAt()).isEqualTo(start);
+    }
+
+    @Test
+    void getById_customerOtherOrder_throwsForbidden() {
+        UUID viewerId = UUID.randomUUID();
+        UUID ownerCustomerId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity viewer = new AccountEntity();
+        viewer.setId(viewerId);
+        viewer.setRole(AccountRole.CUSTOMER);
+
+        AccountEntity orderOwner = new AccountEntity();
+        orderOwner.setId(ownerCustomerId);
+
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(orderOwner);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(viewerId);
+        when(accountRepository.findById(viewerId)).thenReturn(Optional.of(viewer));
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.getById(orderId))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
+                .isEqualTo(FORBIDDEN.value());
+    }
+
+    @Test
+    void getById_admin_canReadAnyOrder() {
+        UUID adminId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+
+        AccountEntity customer = new AccountEntity();
+        customer.setId(customerId);
+
+        OrderEntity order = new OrderEntity();
+        order.setId(orderId);
+        order.setCustomer(customer);
+        order.setStatus(OrderStatus.CREATED);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(adminId);
+        when(accountRepository.findById(adminId)).thenReturn(Optional.of(admin));
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderItemRepository.findAllByOrderId(orderId)).thenReturn(Collections.emptyList());
+        when(orderStatusHistoryRepository.findAllByOrderId(orderId)).thenReturn(Collections.emptyList());
+
+        OrderResponseDto dto = new OrderResponseDto(
+                orderId,
+                1L,
+                customerId,
+                OrderStatus.CREATED,
+                "Создан",
+                "a",
+                null,
+                OrderPaymentMethod.CARD_ONLINE,
+                "x",
+                null,
+                null,
+                null,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                Collections.emptyList(),
+                Collections.emptyList(),
+                null,
+                null
+        );
+        when(orderMapper.toResponse(eq(order), any(), any())).thenReturn(dto);
+
+        assertThat(orderService.getById(orderId)).isEqualTo(dto);
+    }
+
+    @Test
+    void getById_missingOrder_throwsNotFound() {
+        UUID adminId = UUID.randomUUID();
+        UUID orderId = UUID.randomUUID();
+
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(adminId);
+        when(accountRepository.findById(adminId)).thenReturn(Optional.of(admin));
+        when(orderRepository.findById(orderId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.getById(orderId))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting(ex -> ((ResponseStatusException) ex).getStatusCode().value())
+                .isEqualTo(NOT_FOUND.value());
+    }
+
+    @Test
+    void search_admin_passesFilterToRepository() {
+        UUID adminId = UUID.randomUUID();
+        UUID filterCustomerId = UUID.randomUUID();
+
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(adminId);
+        when(accountRepository.findById(adminId)).thenReturn(Optional.of(admin));
+        when(orderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<OrderEntity>>any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Collections.emptyList()));
+
+        orderService.search(new OrderSearchRequestDto(filterCustomerId, OrderStatus.PROCESSING), PageRequest.of(0, 20));
+
+        verify(orderRepository, times(1)).findAll(
+                org.mockito.ArgumentMatchers.<Specification<OrderEntity>>any(),
+                any(Pageable.class)
+        );
+    }
 
     @Test
     void create_shouldCreateOrderWithDiscountSnapshot() {
@@ -216,5 +560,40 @@ class OrderServiceImplTest {
         orderService.search(new OrderSearchRequestDto(UUID.randomUUID(), OrderStatus.CREATED), PageRequest.of(0, 20));
 
         verify(orderRepository).findAll(org.mockito.ArgumentMatchers.<Specification<OrderEntity>>any(), any(Pageable.class));
+    }
+
+    private void stubManagerAndOrder(UUID managerId, AccountEntity manager, UUID orderId, OrderEntity order) {
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(managerId);
+        when(accountRepository.findById(managerId)).thenReturn(Optional.of(manager));
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(OrderEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private void stubBuildResponse(UUID orderId, OrderEntity order, UUID customerId) {
+        when(orderItemRepository.findAllByOrderId(orderId)).thenReturn(Collections.emptyList());
+        when(orderStatusHistoryRepository.findAllByOrderId(orderId)).thenReturn(Collections.emptyList());
+        when(orderMapper.toResponse(eq(order), any(), any())).thenAnswer(invocation -> {
+            OrderEntity o = invocation.getArgument(0);
+            return new OrderResponseDto(
+                    orderId,
+                    1L,
+                    customerId,
+                    o.getStatus(),
+                    "l",
+                    "addr",
+                    null,
+                    OrderPaymentMethod.CARD_ONLINE,
+                    "x",
+                    null,
+                    o.getEstimatedDeliveryAt(),
+                    o.getEstimatedDeliveryEnd(),
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    null,
+                    null
+            );
+        });
     }
 }

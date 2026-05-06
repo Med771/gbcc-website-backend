@@ -13,6 +13,7 @@ import backend.website.gbcc.logic.product.productclass.ProductClassRepository;
 import backend.website.gbcc.logic.product.productclass.ProductClassSpecification;
 import backend.website.gbcc.logic.product.productphoto.ProductPhotoService;
 
+import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.tool.ProductClassTool;
 import backend.website.gbcc.tool.ProductSeriesTool;
 import backend.website.gbcc.tool.ProductTypeTool;
@@ -52,6 +53,8 @@ public class ProductServiceImpl implements ProductService {
     private final ProductSeriesTool productSeriesTool;
     private final ProductTypeTool productTypeTool;
 
+    private final SecurityContextHelper securityContextHelper;
+
     @Override
     @Transactional(readOnly = true)
     public ProductResponseDto getById(UUID productId) {
@@ -85,6 +88,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponseDto create(CreateProductRequestDto requestDto) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can create products");
         validateDiscountPercent(requestDto.discountPercent());
         var productClass = productClassTool.getOrCreate(requestDto.className());
         var productSeries = productSeriesTool.getOrCreate(requestDto.seriesName());
@@ -98,6 +102,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponseDto update(UUID productId, UpdateProductRequestDto requestDto) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can update products");
         ProductEntity product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
         validateDiscountPercent(requestDto.discountPercent());
@@ -136,6 +141,7 @@ public class ProductServiceImpl implements ProductService {
     @Override
     @Transactional
     public ProductResponseDto patch(UUID productId, PatchProductRequestDto requestDto) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can update products");
         ProductEntity product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
 
@@ -287,11 +293,13 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public void attachPhoto(UUID productId, AttachProductPhotoRequestDto requestDto) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can manage product photos");
         productPhotoService.attachPhoto(productId, requestDto);
     }
 
     @Override
     public void detachPhotoByFileId(UUID productId, UUID fileId) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can manage product photos");
         productPhotoService.detachPhotoByFileId(productId, fileId);
     }
 

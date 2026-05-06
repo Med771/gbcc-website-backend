@@ -1,0 +1,52 @@
+package backend.website.gbcc.logic.crm.task;
+
+import backend.website.gbcc.logic.account.AccountEntity;
+import backend.website.gbcc.logic.crm.lead.CrmLeadEntity;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationEntity;
+import backend.website.gbcc.model.BaseEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.time.Instant;
+
+@Entity
+@Table(name = "crm_task")
+@Getter
+@Setter
+@NoArgsConstructor
+public class CrmTaskEntity extends BaseEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "organization_id")
+    private CrmOrganizationEntity organization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lead_id")
+    private CrmLeadEntity lead;
+
+    @Column(name = "due_at", nullable = false)
+    private Instant dueAt;
+
+    @Column(length = 512)
+    private String reason;
+
+    @Column(name = "comment_text", columnDefinition = "text")
+    private String commentText;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 32)
+    private CrmTaskStatus status = CrmTaskStatus.OPEN;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "assignee_account_id", nullable = false)
+    private AccountEntity assignee;
+}

@@ -15,6 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
@@ -25,8 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @ExtendWith(MockitoExtension.class)
@@ -52,6 +55,13 @@ class AccountServiceImplTest {
 
     @Test
     void createAdmin_shouldHashPasswordAndNormalizeEmail() {
+        UUID ownerId = UUID.randomUUID();
+        AccountEntity owner = new AccountEntity();
+        owner.setId(ownerId);
+        owner.setRole(AccountRole.OWNER);
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(ownerId);
+        when(accountRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+
         CreateAdminAccountRequestDto request = new CreateAdminAccountRequestDto(
                 "Admin",
                 "Test@Mail.COM",
@@ -103,6 +113,96 @@ class AccountServiceImplTest {
     }
 
     @Test
+    void createAdmin_shouldThrowForbidden_whenActorIsNotOwner() {
+        UUID adminId = UUID.randomUUID();
+        AccountEntity admin = new AccountEntity();
+        admin.setId(adminId);
+        admin.setRole(AccountRole.ADMIN);
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(adminId);
+        when(accountRepository.findById(adminId)).thenReturn(Optional.of(admin));
+
+        CreateAdminAccountRequestDto request = new CreateAdminAccountRequestDto(
+                "Admin",
+                "Test@Mail.COM",
+                "Password123"
+        );
+
+        assertThatThrownBy(() -> accountService.createAdmin(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> {
+                    ResponseStatusException ex = (ResponseStatusException) error;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(FORBIDDEN.value());
+                });
+        verify(accountMapper, never()).toAdminEntity(any(), any());
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void search_shouldThrowForbidden_whenRequesterIsCustomer() {
+        UUID customerId = UUID.randomUUID();
+        AccountEntity customer = new AccountEntity();
+        customer.setId(customerId);
+        customer.setRole(AccountRole.CUSTOMER);
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(customerId);
+        when(accountRepository.findById(customerId)).thenReturn(Optional.of(customer));
+
+        assertThatThrownBy(() -> accountService.search(null, PageRequest.of(0, 20)))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> {
+                    ResponseStatusException ex = (ResponseStatusException) error;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(FORBIDDEN.value());
+                });
+    }
+
+    @Test
+    void activateCustomer_shouldThrowForbidden_whenCustomerActivatesAnother() {
+        UUID requesterId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        AccountEntity requester = new AccountEntity();
+        requester.setId(requesterId);
+        requester.setRole(AccountRole.CUSTOMER);
+        AccountEntity target = new AccountEntity();
+        target.setId(targetId);
+        target.setRole(AccountRole.CUSTOMER);
+        target.setIsBlocked(false);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(requesterId);
+        when(accountRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(accountRepository.findById(targetId)).thenReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> accountService.activateCustomer(
+                targetId,
+                new ActivateCustomerAccountRequestDto("Password123")
+        ))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value())
+                        .isEqualTo(FORBIDDEN.value()));
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void deleteCustomer_shouldThrowForbidden_whenCustomerDeletesAnother() {
+        UUID requesterId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        AccountEntity requester = new AccountEntity();
+        requester.setId(requesterId);
+        requester.setRole(AccountRole.CUSTOMER);
+        AccountEntity target = new AccountEntity();
+        target.setId(targetId);
+        target.setRole(AccountRole.CUSTOMER);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(requesterId);
+        when(accountRepository.findById(requesterId)).thenReturn(Optional.of(requester));
+        when(accountRepository.findById(targetId)).thenReturn(Optional.of(target));
+
+        assertThatThrownBy(() -> accountService.deleteCustomer(targetId))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value())
+                        .isEqualTo(FORBIDDEN.value()));
+        verify(accountRepository, never()).delete(org.mockito.ArgumentMatchers.<AccountEntity>any());
+    }
+
+    @Test
     void ensureOwnerExists_shouldDoNothing_whenOwnerAlreadyExists() {
         when(accountRepository.existsByRole(AccountRole.OWNER)).thenReturn(true);
 
@@ -132,11 +232,18 @@ class AccountServiceImplTest {
 
     @Test
     void block_shouldMarkAccountAsBlocked() {
+        UUID moderatorId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
+        AccountEntity moderator = new AccountEntity();
+        moderator.setId(moderatorId);
+        moderator.setRole(AccountRole.ADMIN);
         AccountEntity entity = new AccountEntity();
         entity.setId(accountId);
+        entity.setRole(AccountRole.CUSTOMER);
         entity.setIsBlocked(false);
 
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(moderatorId);
+        when(accountRepository.findById(moderatorId)).thenReturn(Optional.of(moderator));
         when(accountRepository.findById(accountId)).thenReturn(Optional.of(entity));
 
         accountService.block(accountId);
@@ -275,6 +382,9 @@ class AccountServiceImplTest {
         when(passwordEncoder.encode("Password123")).thenReturn("$2a$new");
         when(accountRepository.save(entity)).thenReturn(entity);
         when(accountMapper.toResponse(entity)).thenReturn(responseDto);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(entity));
 
         AccountResponseDto result = accountService.activateCustomer(
                 accountId,

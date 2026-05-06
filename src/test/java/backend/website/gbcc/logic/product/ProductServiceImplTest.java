@@ -1,5 +1,7 @@
 package backend.website.gbcc.logic.product;
 
+import backend.website.gbcc.helper.SecurityContextHelper;
+import backend.website.gbcc.logic.product.dto.CreateProductRequestDto;
 import backend.website.gbcc.logic.product.dto.GroupedCatalogSearchResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductClassResponseDto;
 import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
@@ -12,6 +14,9 @@ import backend.website.gbcc.logic.product.productseries.ProductSeriesEntity;
 import backend.website.gbcc.tool.ProductClassTool;
 import backend.website.gbcc.tool.ProductSeriesTool;
 import backend.website.gbcc.tool.ProductTypeTool;
+import backend.website.gbcc.model.AccountPrincipal;
+import backend.website.gbcc.model.AccountRole;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,7 +32,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -57,8 +64,33 @@ class ProductServiceImplTest {
     @Mock
     private ProductTypeTool productTypeTool;
 
+    @Mock
+    private SecurityContextHelper securityContextHelper;
+
     @InjectMocks
     private ProductServiceImpl productService;
+
+    @BeforeEach
+    void stubCatalogManagerAuth() {
+        lenient().when(securityContextHelper.requireAdminOrOwner(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(new AccountPrincipal(UUID.randomUUID(), AccountRole.ADMIN));
+    }
+
+    @Test
+    void create_shouldPropagateForbidden_whenNotAdminOrOwner() {
+        when(securityContextHelper.requireAdminOrOwner(org.mockito.ArgumentMatchers.anyString()))
+                .thenThrow(new ResponseStatusException(FORBIDDEN, "Only admin or owner can create products"));
+
+        CreateProductRequestDto dto = new CreateProductRequestDto(
+                "C", null, null, "B", null, null, null, null, null,
+                10, 10, 10, new BigDecimal("1"), new BigDecimal("10.00"), BigDecimal.ZERO, true
+        );
+
+        assertThatThrownBy(() -> productService.create(dto))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(ex -> assertThat(((ResponseStatusException) ex).getStatusCode().value()).isEqualTo(FORBIDDEN.value()));
+        verifyNoInteractions(productRepository);
+    }
 
     @Test
     void searchGrouped_returnsEmpty_whenQueryBlankWithoutCallingRepositories() {

@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_ADMIN;
 import static backend.website.gbcc.web.WebMvcTestFixtures.UUID_1;
 import static backend.website.gbcc.web.WebMvcTestFixtures.UUID_2;
 import static backend.website.gbcc.web.WebMvcTestFixtures.sampleProductResponse;
@@ -91,10 +92,19 @@ class ProductControllerWebMvcTest {
     }
 
     @Test
-    void create_withoutAuth_returns201() throws Exception {
+    void create_withoutAuth_returns403() throws Exception {
+        mockMvc.perform(post("/product")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(CREATE_JSON))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void create_withAdmin_returns201() throws Exception {
         when(productService.create(any())).thenReturn(sampleProductResponse(UUID_1));
 
         mockMvc.perform(post("/product")
+                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(CREATE_JSON))
                 .andExpect(status().isCreated());
@@ -105,6 +115,7 @@ class ProductControllerWebMvcTest {
         when(productService.update(eq(UUID_1), any())).thenReturn(sampleProductResponse(UUID_1));
 
         mockMvc.perform(put("/product/{productId}", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(UPDATE_JSON))
                 .andExpect(status().isOk());
@@ -115,6 +126,7 @@ class ProductControllerWebMvcTest {
         when(productService.patch(eq(UUID_1), any())).thenReturn(sampleProductResponse(UUID_1));
 
         mockMvc.perform(patch("/product/{productId}", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk());
@@ -166,6 +178,7 @@ class ProductControllerWebMvcTest {
     @Test
     void attachPhoto_returns204() throws Exception {
         mockMvc.perform(post("/product/{productId}/photos", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"fileId\":\"00000000-0000-4000-8000-000000000002\",\"sortOrder\":0}"))
                 .andExpect(status().isNoContent());
@@ -175,7 +188,9 @@ class ProductControllerWebMvcTest {
 
     @Test
     void detachPhoto_returns204() throws Exception {
-        mockMvc.perform(delete("/product/{productId}/photos", UUID_1).param("fileId", UUID_2.toString()))
+        mockMvc.perform(delete("/product/{productId}/photos", UUID_1)
+                        .with(ControllerTestSupport.principal(PRINCIPAL_ADMIN))
+                        .param("fileId", UUID_2.toString()))
                 .andExpect(status().isNoContent());
 
         verify(productService).detachPhotoByFileId(eq(UUID_1), eq(UUID_2));
