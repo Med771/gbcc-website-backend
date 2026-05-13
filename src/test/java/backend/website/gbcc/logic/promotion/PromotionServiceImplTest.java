@@ -2,17 +2,28 @@ package backend.website.gbcc.logic.promotion;
 
 import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.logic.promotion.dto.CreatePromotionRequestDto;
+import backend.website.gbcc.logic.promotion.dto.PatchPromotionRequestDto;
 import backend.website.gbcc.logic.promotion.dto.PromotionResponseDto;
+import backend.website.gbcc.logic.promotion.dto.PromotionSearchRequestDto;
+import backend.website.gbcc.model.AccountPrincipal;
+import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.PromotionScopeType;
+import backend.website.gbcc.model.dto.PageResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -132,5 +143,82 @@ class PromotionServiceImplTest {
         assertThatThrownBy(() -> promotionService.create(dto))
                 .isInstanceOf(ResponseStatusException.class)
                 .satisfies(ex -> assertThat(((ResponseStatusException) ex).getReason()).contains("validFrom"));
+    }
+
+    @Test
+    void patch_shouldUpdateName_whenAdmin() {
+        UUID id = UUID.randomUUID();
+        PromotionEntity entity = new PromotionEntity();
+        entity.setId(id);
+        entity.setName("Old");
+        entity.setDiscountPercent(new BigDecimal("5"));
+        entity.setValidFrom(Instant.parse("2025-06-01T00:00:00Z"));
+        entity.setValidTo(Instant.parse("2025-12-31T23:59:59Z"));
+        entity.setIsActive(true);
+        entity.setPriority(2);
+        entity.setScope(PromotionScopeType.ALL);
+        entity.setScopeReferenceId(null);
+
+        when(securityContextHelper.requireAdminOrOwner(org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(new AccountPrincipal(UUID.randomUUID(), AccountRole.ADMIN));
+        when(promotionRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(promotionRepository.save(entity)).thenReturn(entity);
+        when(promotionMapper.toResponse(entity)).thenReturn(new PromotionResponseDto(
+                id,
+                "New",
+                entity.getDiscountPercent(),
+                entity.getValidFrom(),
+                entity.getValidTo(),
+                entity.getIsActive(),
+                entity.getPriority(),
+                entity.getScope(),
+                null,
+                Instant.now(),
+                Instant.now()
+        ));
+
+        PromotionResponseDto result = promotionService.patch(
+                id,
+                new PatchPromotionRequestDto("New", null, null, null, null, null, null, null)
+        );
+
+        assertThat(result.name()).isEqualTo("New");
+        assertThat(entity.getName()).isEqualTo("New");
+        verify(promotionRepository).save(entity);
+    }
+
+    @Test
+    void search_shouldApplyGuestVisibility_andMapRows() {
+        when(securityContextHelper.isCurrentPrincipalAdminOrOwner()).thenReturn(false);
+
+        PromotionEntity entity = new PromotionEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setName("Vis");
+
+        PromotionResponseDto dto = new PromotionResponseDto(
+                entity.getId(),
+                "Vis",
+                new BigDecimal("5"),
+                Instant.parse("2025-06-01T00:00:00Z"),
+                Instant.parse("2025-12-31T23:59:59Z"),
+                true,
+                1,
+                PromotionScopeType.ALL,
+                null,
+                Instant.now(),
+                Instant.now()
+        );
+
+        when(promotionRepository.findAll(org.mockito.ArgumentMatchers.<Specification<PromotionEntity>>any(), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(entity)));
+        when(promotionMapper.toResponse(entity)).thenReturn(dto);
+
+        PageResponse<PromotionResponseDto> page = promotionService.search(
+                new PromotionSearchRequestDto("Vis", true, PromotionScopeType.ALL),
+                PageRequest.of(0, 10)
+        );
+
+        assertThat(page.data()).hasSize(1);
+        assertThat(page.data().getFirst().name()).isEqualTo("Vis");
     }
 }

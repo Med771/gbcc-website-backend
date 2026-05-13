@@ -80,6 +80,8 @@ public class OrderServiceImpl implements OrderService {
 
         BigDecimal totalPrice = BigDecimal.ZERO;
         BigDecimal totalDiscountedPrice = BigDecimal.ZERO;
+        order.setTotalPrice(totalPrice.setScale(2, RoundingMode.HALF_UP));
+        order.setTotalDiscountedPrice(totalDiscountedPrice.setScale(2, RoundingMode.HALF_UP));
         OrderEntity savedOrder = orderRepository.save(order);
 
         Instant pricingAt = Instant.now();

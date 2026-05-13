@@ -4,36 +4,27 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.resttestclient.TestRestTemplate;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
+import static backend.website.gbcc.integration.fixtures.IntegrationExampleRequests.customerRegisterJson;
+import static backend.website.gbcc.integration.fixtures.IntegrationExampleRequests.loginJson;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Полный контекст + PostgreSQL в Docker. Тег {@code requires-docker} исключён из default {@code mvn test}.
+ * Полный контекст + PostgreSQL в Docker (Testcontainers, см. {@link PostgresIntegrationTestConfiguration}).
+ * Нужен запущенный Docker (например Docker Desktop).
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@Testcontainers(disabledWithoutDocker = true)
+@GbccPostgresIntegrationTest
 @Tag("requires-docker")
 class CustomerAuthFlowIntegrationTest {
-
-    @Container
-    @ServiceConnection
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:17-alpine");
 
     @Autowired
     private TestRestTemplate restTemplate;
@@ -45,17 +36,7 @@ class CustomerAuthFlowIntegrationTest {
     void registerAndLogin_shouldReturn200AndSetCookies() {
         String email = "cust-" + UUID.randomUUID() + "@example.com";
         String phone = String.format("+79%09d", ThreadLocalRandom.current().nextInt(100_000_000, 1_000_000_000));
-        String registerBody = """
-                {
-                  "firstName": "Integration",
-                  "lastName": "User",
-                  "patronymic": null,
-                  "phone": "%s",
-                  "email": "%s",
-                  "password": "Password123!",
-                  "inviteCode": null
-                }
-                """.formatted(phone, email);
+        String registerBody = customerRegisterJson(phone, email);
 
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -66,12 +47,7 @@ class CustomerAuthFlowIntegrationTest {
         );
         assertThat(reg.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
-        String loginBody = """
-                {
-                  "email": "%s",
-                  "password": "Password123!"
-                }
-                """.formatted(email);
+        String loginBody = loginJson(email, "Password123!");
 
         ResponseEntity<String> login = restTemplate.postForEntity(
                 "/auth/login",
@@ -86,17 +62,7 @@ class CustomerAuthFlowIntegrationTest {
     void registerDuplicateEmail_shouldReturnConflict() {
         String email = "dup-" + UUID.randomUUID() + "@example.com";
         String phone = String.format("+79%09d", ThreadLocalRandom.current().nextInt(100_000_000, 1_000_000_000));
-        String body = """
-                {
-                  "firstName": "Dup",
-                  "lastName": "User",
-                  "patronymic": null,
-                  "phone": "%s",
-                  "email": "%s",
-                  "password": "Password123!",
-                  "inviteCode": null
-                }
-                """.formatted(phone, email);
+        String body = customerRegisterJson(phone, email);
 
         HttpHeaders jsonHeaders = new HttpHeaders();
         jsonHeaders.setContentType(MediaType.APPLICATION_JSON);

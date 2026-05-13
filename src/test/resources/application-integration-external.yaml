@@ -1,0 +1,7 @@
+# Опционально: локальная PostgreSQL (docker compose), если приложение или тесты запускаются без Testcontainers.
+# Подключение: spring.profiles.active=test,integration-external (и не импортировать PostgresIntegrationTestConfiguration).
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5555/gbcc
+    username: GBCC
+    password: "GBCC!05510"

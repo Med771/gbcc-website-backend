@@ -7,4 +7,3 @@ logging:
   level:
     org.springframework.test.context.support.AnnotationConfigContextLoaderUtils: WARN
     org.springframework.boot.test.context.SpringBootTestContextBootstrapper: WARN
-    org.testcontainers.dockerclient: WARN

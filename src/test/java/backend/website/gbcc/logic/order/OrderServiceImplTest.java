@@ -481,6 +481,45 @@ class OrderServiceImplTest {
     }
 
     @Test
+    void create_shouldThrowBadRequest_whenProductInactive() {
+        UUID customerId = UUID.randomUUID();
+        UUID productId = UUID.randomUUID();
+
+        AccountEntity customer = new AccountEntity();
+        customer.setId(customerId);
+        customer.setRole(AccountRole.CUSTOMER);
+
+        ProductEntity product = new ProductEntity();
+        product.setId(productId);
+        product.setPrice(new BigDecimal("10.00"));
+        product.setDiscountPercent(BigDecimal.ZERO);
+        product.setIsActive(false);
+
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(customerId);
+        when(accountRepository.findById(customerId)).thenReturn(Optional.of(customer));
+        when(orderRepository.nextDisplayNumber()).thenReturn(1L);
+        when(productRepository.findAllWithTaxonomyByIds(any())).thenReturn(List.of(product));
+
+        CreateOrderRequestDto request = new CreateOrderRequestDto(
+                "Addr",
+                null,
+                OrderPaymentMethod.CARD_OR_ON_RECEIPT,
+                List.of(new CreateOrderItemRequestDto(productId, 1))
+        );
+
+        assertThatThrownBy(() -> orderService.create(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> {
+                    ResponseStatusException ex = (ResponseStatusException) error;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(BAD_REQUEST.value());
+                    assertThat(ex.getReason()).contains("inactive");
+                    assertThat(ex.getReason()).contains(productId.toString());
+                });
+
+        verify(orderItemRepository, never()).save(any(OrderItemEntity.class));
+    }
+
+    @Test
     void updateStatus_shouldThrowForbidden_forCustomer() {
         UUID customerId = UUID.randomUUID();
         AccountEntity customer = new AccountEntity();

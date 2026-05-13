@@ -116,4 +116,14 @@ class JwtAuthenticationFilterTest {
 
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
+
+    @Test
+    void doFilterInternal_shouldNotAuthenticate_whenJwtMalformed() throws Exception {
+        when(request.getCookies()).thenReturn(new Cookie[]{new Cookie(ACCESS_COOKIE, "not-a-valid-jwt")});
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
 }

@@ -29,10 +29,10 @@ OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-d
 - `config` — Security, JWT, Swagger/OpenAPI, JPA auditing, инициализация owner-аккаунта
 - `filter` — JWT из cookie `GBCC_ACCESS_TOKEN`
 - `handler` — `GlobalExceptionHandler`, единый формат `ApiErrorResponse`
-- `logic/*` — домены: `auth`, `account`, `product`, `file`, `news`, `promotion`, `order`, `support`, `contactrequest`, **`crm`** (организации, лиды, interactions, tasks, supplies, contracts, map, metrics)
+- `logic/*` — домены: `auth`, `account`, `product`, `file`, `news`, `promotion`, `order`, `support`, `contactrequest`, **`analytics`** (публичный сбор событий сайта), **`crm`** (организации, лиды, interactions, tasks, supplies, contracts, map, metrics, **аналитика сайта**)
 - `model` — общие enum, DTO ошибок, базовые сущности
 - `resources/db/migration` — SQL миграции Flyway (`V###__description.sql`)
-- `test` — unit-тесты (Mockito), WebMvc-срезы (`@GbccWebMvcTest`), интеграционные тесты с Testcontainers (тег `requires-docker`). По умолчанию `mvn test` их **не запускает** (исключена группа `requires-docker`). Полный прогон с PostgreSQL в Docker: `mvn verify -Pintegration-tests` (нужен запущенный Docker Desktop / engine).
+- `test` — unit-тесты (Mockito), WebMvc-срезы (`@GbccWebMvcTest`), интеграционные тесты против **внешней** PostgreSQL (профили `test` + `integration-external`, тег `requires-external-db` для навигации). Обычный `mvn test` **не поднимает** их: Surefire исключает `GbccWebsiteBackendApplicationTests` и `**/integration/*IntegrationTest.java`. Полный прогон с IT: поднять БД (`docker-compose.yaml` в корне), затем `mvn verify -Pintegration-tests` или `-Pintegration-external`.
 - `docs/TZ_CRM_BACKEND_ALIGNMENT.md` — сверка ТЗ CRM с реализацией
 - `docs/EXPERT_GUIDE.md` — единый экспертный обзор (роли, B2C/B2B, безопасность, тесты, ссылки на остальные документы)
 
@@ -50,6 +50,7 @@ OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-d
 - **Контракты и график:** `/crm/contracts`, строки `.../contracts/{id}/lines`.
 - **Карта:** `GET /crm/map/pins`, объекты компании `.../map/company-objects`.
 - **Метрики:** `GET /crm/metrics/summary` (агрегаты в рамках скоупа: OWNER — всё, ADMIN — только назначенные на него сущности / свои задачи).
+- **Веб-аналитика (first-party):** `GET /crm/analytics/summary`, `GET /crm/analytics/events` — сводка и лента по событиям с сайта (JWT ADMIN/OWNER; глобальные агрегаты, без привязки к сущностям CRM).
 
 Менеджер в ТЗ соответствует роли **ADMIN**; руководитель — **OWNER**. Координаты и статусы вводятся вручную, внешние интеграции не используются.
 
@@ -90,6 +91,7 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 | **Support** | Обращения в администрацию; гости с токеном `X-Support-Token` |
 | **Contact requests** | Заявки с формы на сайте: публичная отправка; список и «взять на изучение» — ADMIN/OWNER |
 | **CRM — Organizations** … **CRM — Metrics** | Модуль CRM под префиксом `/crm/**` (см. раздел **CRM API** выше) |
+| **Site analytics** | Публично: `POST /analytics/collect` — пакет событий (без JWT). Подробности — ниже. |
 
 ---
 
@@ -118,6 +120,17 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 ### Пагинация (Spring Data)
 
 Списочные GET принимают стандартные параметры: `page` (0-based), `size`, `sort` (например `sort=createdAt,desc`).
+
+### Веб-аналитика (first-party)
+
+- **Сбор:** `POST /analytics/collect` — без авторизации, ответ **204**. Тело JSON:
+  - `visitorId`, `sessionId` — UUID (на уровне пакета).
+  - `events` — массив (лимит длины: `app.analytics.max-batch-size`, по умолчанию 50). Элемент: `occurredAt` (ISO-8601), `eventType` (строка до 32 символов, например `PAGE_VIEW`), `path` (желательно с ведущим `/`; иначе сервер добавит), опционально `referrer`, `metadata` (JSON-объект: поля и значения примитивов/вложенных объектов; суммарная длина сериализованного JSON ограничена `app.analytics.max-metadata-chars`; в БД хранится как текст).
+- **DNT:** при заголовке `DNT: 1` и `app.analytics.honor-dnt: true` события **не сохраняются** (всё равно 204).
+- **Cookie:** при `app.analytics.cookie-enabled: true` сервер может добавить `Set-Cookie` (HttpOnly, имя из `app.analytics.cookie-name`, по умолчанию `GBCC_VISITOR_ID`), если cookie нет или не совпадает с `visitorId` в теле. Флаги `Secure` и TTL — из `app.analytics.*` (для `Secure` при отсутствии значения используется `app.jwt.cookie-secure`).
+- **CRM:** `GET /crm/analytics/summary?from=&to=` и `GET /crm/analytics/events?from=&to=&page=&size=` — только с JWT **ADMIN/OWNER**; фильтр по времени приёма на сервере `received_at`, полуинтервал `[from, to)`.
+
+Полный набор настроек — префикс `app.analytics` в `application.yaml`.
 
 ### Ошибки
 
@@ -179,7 +192,10 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 mvn test
 ```
 
-Полный прогон с **интеграционными** тестами (Testcontainers PostgreSQL — нужен **Docker**):
+Полный прогон с **интеграционными** тестами (нужна **PostgreSQL** с применёнными миграциями Flyway):
+
+- URL по умолчанию в `src/test/resources/application-integration-external.yaml`: **`jdbc:postgresql://localhost:5555/gbcc`** (как в `docker-compose.yaml` в корне: `docker compose up -d`).
+- Если БД на другом порту (например **5510**, как в `application.yaml` приложения): задайте `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5510/gbcc` перед `mvn verify -Pintegration-tests`.
 
 ```bash
 mvn verify -Pintegration-tests
@@ -190,7 +206,7 @@ mvn verify -Pintegration-tests
 - `target/site/jacoco/index.html`
 - Минимальная доля покрытых строк задаётся свойством `jacoco.minimum.line.ratio` в `pom.xml` (проверка на фазе `verify`).
 
-Профиль `test` подхватывает `src/test/resources/application-test.yaml` (секрет JWT и owner для инициализации в интеграционных сценариях).
+Профиль `test` подхватывает `src/test/resources/application-test.yaml` (секрет JWT и owner для инициализации в интеграционных сценариях). Подключение к БД в IT — `src/test/resources/application-integration-external.yaml` (профиль `integration-external`); при необходимости переопределите `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 
 #### `Failed to resolve org.junit.vintage:junit-vintage-engine:6.0.3`
 

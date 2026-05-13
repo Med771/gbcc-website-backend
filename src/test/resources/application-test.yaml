@@ -1,4 +1,6 @@
-# Профиль для интеграционных тестов (Testcontainers подставляет JDBC через @ServiceConnection).
+# Профиль test: JWT и owner для интеграционных тестов. JDBC/Flyway — PostgreSQL из Testcontainers
+# (см. PostgresIntegrationTestConfiguration + @ServiceConnection в Spring Boot 4).
+
 spring:
   jpa:
     show-sql: false

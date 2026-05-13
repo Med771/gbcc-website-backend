@@ -30,7 +30,7 @@
 | Маппинг DTO | MapStruct 1.6.3 |
 | Утилиты | Lombok 1.18.42 |
 | Тесты | JUnit Jupiter, Mockito, `spring-boot-starter-webmvc-test`, Spring Security Test |
-| Интеграционные тесты | Testcontainers 1.20.4 (PostgreSQL), `spring-boot-testcontainers` |
+| Интеграционные тесты | Внешняя PostgreSQL (профили `test` + `integration-external`), см. `application-integration-external.yaml` / `docker-compose.yaml` |
 | Покрытие | JaCoCo 0.8.12, проверка минимальной доли строк на `verify` (`jacoco.minimum.line.ratio` в `pom.xml`, сейчас 0.20) |
 
 Сборка: **Maven** (`mvnw` / локальный Maven). Упаковка: исполняемый JAR (`spring-boot-maven-plugin` repackage).
@@ -316,13 +316,13 @@
 
 | Команда | Содержимое прогона |
 |---------|-------------------|
-| `mvn test` | Unit + WebMvc; интеграционные тесты с тегом `requires-docker` **исключены** (Surefire) |
-| `mvn verify -Pintegration-tests` | Включает тесты с Docker (Testcontainers PostgreSQL) |
+| `mvn test` | Unit + WebMvc; IT **исключены** Surefire по имени классов (`GbccWebsiteBackendApplicationTests`, `**/integration/*IntegrationTest.java`) |
+| `mvn verify -Pintegration-tests` | Снимает эти `excludes`; нужна доступная PostgreSQL (см. `application-integration-external.yaml`) |
 | `mvn verify` | Сборка + тесты + JaCoCo report/check (порог по строкам) |
 
 Профиль тестовых свойств: `src/test/resources/application-test.yaml` (JWT secret и owner для интеграции).
 
-Примеры интеграционных классов: `GbccWebsiteBackendApplicationTests`, `integration/CustomerAuthFlowIntegrationTest` — помечены `@Tag("requires-docker")`.
+Примеры интеграционных классов: `GbccWebsiteBackendApplicationTests`, `integration/CustomerAuthFlowIntegrationTest` — тег `requires-external-db` для фильтрации в IDE. БД: `application-integration-external.yaml` (по умолчанию порт **5555**, как в `docker-compose.yaml`); при другом порте: `SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5510/gbcc`.
 
 Срезы WebMvc: кастомные мета-аннотации/базовые тесты (например `@GbccWebMvcTest` в проекте).
 

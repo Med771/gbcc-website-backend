@@ -3,10 +3,12 @@ package backend.website.gbcc.web;
 import backend.website.gbcc.filter.JwtAuthenticationFilter;
 import backend.website.gbcc.logic.promotion.PromotionController;
 import backend.website.gbcc.logic.promotion.PromotionService;
+import backend.website.gbcc.logic.promotion.dto.PromotionSearchRequestDto;
 import backend.website.gbcc.model.PromotionScopeType;
 import backend.website.gbcc.model.dto.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -17,6 +19,7 @@ import java.util.List;
 import static backend.website.gbcc.web.WebMvcTestFixtures.PRINCIPAL_ADMIN;
 import static backend.website.gbcc.web.WebMvcTestFixtures.UUID_1;
 import static backend.website.gbcc.web.WebMvcTestFixtures.samplePromotionResponse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -66,6 +69,26 @@ class PromotionControllerWebMvcTest {
 
         mockMvc.perform(get("/promotion").param("page", "0").param("size", "20"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void search_public_passesFilterParamsToService() throws Exception {
+        when(promotionService.search(any(), any())).thenReturn(
+                new PageResponse<>(List.of(samplePromotionResponse(UUID_1)), 0, 20, 1, 1));
+
+        mockMvc.perform(get("/promotion")
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("name", "PromoX")
+                        .param("isActive", "false")
+                        .param("scope", "PRODUCT"))
+                .andExpect(status().isOk());
+
+        ArgumentCaptor<PromotionSearchRequestDto> captor = ArgumentCaptor.forClass(PromotionSearchRequestDto.class);
+        verify(promotionService).search(captor.capture(), any());
+        assertThat(captor.getValue().name()).isEqualTo("PromoX");
+        assertThat(captor.getValue().isActive()).isFalse();
+        assertThat(captor.getValue().scope()).isEqualTo(PromotionScopeType.PRODUCT);
     }
 
     @Test

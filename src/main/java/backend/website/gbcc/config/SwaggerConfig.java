@@ -11,6 +11,8 @@ import io.swagger.v3.oas.models.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -18,20 +20,36 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SwaggerConfig {
 
+    private static final String DEFAULT_SERVER_URL = "http://localhost:8080";
+    private static final String DEFAULT_SERVER_DESC = "Local";
+
     private final SwaggerProperty swaggerProperty;
 
     @Bean
     public OpenAPI customOpenAPI() {
+        String title = StringUtils.hasText(swaggerProperty.getTitle()) ? swaggerProperty.getTitle() : "API";
+        String version = StringUtils.hasText(swaggerProperty.getVersion()) ? swaggerProperty.getVersion() : "0";
+        String description = StringUtils.hasText(swaggerProperty.getDescription())
+                ? swaggerProperty.getDescription()
+                : "";
+
+        List<Server> servers;
+        if (CollectionUtils.isEmpty(swaggerProperty.getServers())) {
+            servers = List.of(new Server().url(DEFAULT_SERVER_URL).description(DEFAULT_SERVER_DESC));
+        } else {
+            servers = swaggerProperty.getServers().stream()
+                    .map(serv -> new Server()
+                            .url(StringUtils.hasText(serv.getUrl()) ? serv.getUrl() : DEFAULT_SERVER_URL)
+                            .description(StringUtils.hasText(serv.getDescription()) ? serv.getDescription() : null))
+                    .toList();
+        }
+
         return new OpenAPI()
                 .info(new Info()
-                        .title(swaggerProperty.getTitle())
-                        .description(swaggerProperty.getDescription())
-                        .version(swaggerProperty.getVersion()))
-                .servers(swaggerProperty.getServers().stream()
-                        .map(serv -> new Server()
-                                .url(serv.getUrl())
-                                .description(serv.getDescription()))
-                        .toList())
+                        .title(title)
+                        .description(description)
+                        .version(version))
+                .servers(servers)
                 .components(new Components()
                         .addSecuritySchemes(OpenApiConstants.SECURITY_ACCESS_COOKIE,
                                 new SecurityScheme()

@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,9 +27,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -300,6 +303,62 @@ class AccountServiceImplTest {
                     assertThat(ex.getStatusCode().value()).isEqualTo(403);
                     assertThat(ex.getReason()).isEqualTo("Admin cannot access owner account");
                 });
+    }
+
+    @Test
+    void registerCustomer_shouldThrowConflict_whenEmailOrPhoneAlreadyExists() {
+        RegisterCustomerAccountRequestDto request = new RegisterCustomerAccountRequestDto(
+                "Customer",
+                "Customer",
+                null,
+                "+123456789",
+                "dup@mail.com",
+                "Password123",
+                null
+        );
+
+        when(passwordEncoder.encode(org.mockito.ArgumentMatchers.anyString())).thenReturn("$2a$hash");
+        doThrow(new DuplicateKeyException("unique violation"))
+                .when(accountRepository).save(org.mockito.ArgumentMatchers.any(AccountEntity.class));
+
+        assertThatThrownBy(() -> accountService.registerCustomer(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> {
+                    ResponseStatusException ex = (ResponseStatusException) error;
+                    assertThat(ex.getStatusCode().value()).isEqualTo(CONFLICT.value());
+                    assertThat(ex.getReason()).contains("already exists");
+                });
+    }
+
+    @Test
+    void createAdmin_shouldThrowConflict_whenEmailAlreadyExists() {
+        UUID ownerId = UUID.randomUUID();
+        AccountEntity owner = new AccountEntity();
+        owner.setId(ownerId);
+        owner.setRole(AccountRole.OWNER);
+        when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(ownerId);
+        when(accountRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+
+        CreateAdminAccountRequestDto request = new CreateAdminAccountRequestDto(
+                "Admin",
+                "dup@mail.com",
+                "Password123"
+        );
+
+        AccountEntity mappedEntity = new AccountEntity();
+        mappedEntity.setEmail("dup@mail.com");
+        mappedEntity.setRole(AccountRole.ADMIN);
+
+        when(accountMapper.toAdminEntity(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.anyString()))
+                .thenReturn(mappedEntity);
+        when(passwordEncoder.encode("Password123")).thenReturn("$2a$hash");
+        doThrow(new DuplicateKeyException("unique violation"))
+                .when(accountRepository).save(mappedEntity);
+
+        assertThatThrownBy(() -> accountService.createAdmin(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value())
+                        .isEqualTo(CONFLICT.value()));
     }
 
     @Test

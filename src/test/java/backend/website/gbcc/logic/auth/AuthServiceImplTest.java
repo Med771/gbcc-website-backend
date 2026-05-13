@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -132,6 +133,128 @@ class AuthServiceImplTest {
         assertThat(response.accessToken()).isEqualTo("access-new");
         assertThat(response.refreshToken()).isNotEqualTo("refresh-old");
         verify(refreshTokenRepository).save(existing);
+    }
+
+    @Test
+    void login_shouldThrowForbidden_whenAccountBlocked() {
+        AccountEntity account = new AccountEntity();
+        account.setEmail("blocked@mail.com");
+        account.setPasswordHash("hash");
+        account.setRole(AccountRole.CUSTOMER);
+        account.setIsBlocked(true);
+        account.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+        account.setIsPasswordSet(true);
+
+        when(accountRepository.findByEmailIgnoreCase("blocked@mail.com")).thenReturn(Optional.of(account));
+
+        assertThatThrownBy(() -> authService.login(new AuthLoginRequestDto("blocked@mail.com", "Password123")))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value()).isEqualTo(403));
+
+        verify(passwordEncoder, never()).matches(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    void refresh_shouldThrowUnauthorized_whenRefreshMissing() {
+        assertThatThrownBy(() -> authService.refresh(null))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value()).isEqualTo(401));
+
+        assertThatThrownBy(() -> authService.refresh("   "))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value()).isEqualTo(401));
+    }
+
+    @Test
+    void refresh_shouldThrowUnauthorized_whenHashUnknown() {
+        when(tokenHashHelper.sha256("bad-refresh")).thenReturn("unknown-hash");
+        when(refreshTokenRepository.findByTokenHash("unknown-hash")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.refresh("bad-refresh"))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value()).isEqualTo(401));
+    }
+
+    @Test
+    void refresh_shouldThrowUnauthorized_whenRevokedOrExpired() {
+        AccountEntity account = new AccountEntity();
+        account.setId(UUID.randomUUID());
+        account.setIsBlocked(false);
+
+        RefreshTokenEntity revoked = new RefreshTokenEntity();
+        revoked.setTokenHash("h");
+        revoked.setRevoked(true);
+        revoked.setExpiresAt(Instant.now().plusSeconds(3600));
+        revoked.setAccount(account);
+
+        when(tokenHashHelper.sha256("revoked")).thenReturn("h");
+        when(refreshTokenRepository.findByTokenHash("h")).thenReturn(Optional.of(revoked));
+
+        assertThatThrownBy(() -> authService.refresh("revoked"))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value()).isEqualTo(401));
+
+        RefreshTokenEntity expired = new RefreshTokenEntity();
+        expired.setTokenHash("h2");
+        expired.setRevoked(false);
+        expired.setExpiresAt(Instant.now().minusSeconds(1));
+        expired.setAccount(account);
+
+        when(tokenHashHelper.sha256("expired")).thenReturn("h2");
+        when(refreshTokenRepository.findByTokenHash("h2")).thenReturn(Optional.of(expired));
+
+        assertThatThrownBy(() -> authService.refresh("expired"))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value()).isEqualTo(401));
+    }
+
+    @Test
+    void refresh_shouldThrowForbidden_whenAccountBlockedAfterValidToken() {
+        AccountEntity account = new AccountEntity();
+        account.setId(UUID.randomUUID());
+        account.setIsBlocked(true);
+        account.setRegistrationStatus(AccountRegistrationStatus.ACTIVE);
+
+        RefreshTokenEntity token = new RefreshTokenEntity();
+        token.setTokenHash("h");
+        token.setRevoked(false);
+        token.setExpiresAt(Instant.now().plusSeconds(3600));
+        token.setAccount(account);
+
+        when(tokenHashHelper.sha256("rt")).thenReturn("h");
+        when(refreshTokenRepository.findByTokenHash("h")).thenReturn(Optional.of(token));
+
+        assertThatThrownBy(() -> authService.refresh("rt"))
+                .isInstanceOf(ResponseStatusException.class)
+                .satisfies(error -> assertThat(((ResponseStatusException) error).getStatusCode().value()).isEqualTo(403));
+    }
+
+    @Test
+    void logout_shouldRevokeRefreshToken_whenValid() {
+        AccountEntity account = new AccountEntity();
+        account.setId(UUID.randomUUID());
+
+        RefreshTokenEntity token = new RefreshTokenEntity();
+        token.setTokenHash("h");
+        token.setRevoked(false);
+        token.setExpiresAt(Instant.now().plusSeconds(3600));
+        token.setAccount(account);
+
+        when(tokenHashHelper.sha256("to-revoke")).thenReturn("h");
+        when(refreshTokenRepository.findByTokenHash("h")).thenReturn(Optional.of(token));
+
+        authService.logout("to-revoke");
+
+        assertThat(token.getRevoked()).isTrue();
+        verify(refreshTokenRepository).save(token);
+    }
+
+    @Test
+    void logout_shouldNoop_whenRefreshBlank() {
+        authService.logout(null);
+        authService.logout("   ");
+
+        verify(refreshTokenRepository, never()).findByTokenHash(org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test
