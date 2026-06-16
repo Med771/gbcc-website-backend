@@ -93,8 +93,110 @@ Push/e-mail уведомлений **нет** (по договорённости
 
 В карточке организации — опциональные FK на `contact_request` и `cooperation_request` (поля при создании организации). Автосоздание лида при `take` заявки **не** подключено (можно добавить отдельной задачей).
 
+Аккаунт покупателя (**`account`**) может быть связан с CRM: **`crm_organization_id`**, **`brought_by_manager_id`** (менеджер-привлечелец). Заказ витрины — опционально **`crm_organization_id`**. Ручная и вычисляемая аналитика клиента — **`customer_analytics`**, API **`GET/PUT /account/customer/{id}/analytics`**.
+
 ---
 
-## 9. Сопровождение
+## 9. Заказы витрины (ТЗ §3, §10)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| Карточка заказа: контакты, заметки, доставка | ✅ | `contact_*`, `manager_notes`, `delivery_fee`; **`PATCH /order/{id}`** |
+| Связь с организацией CRM | ✅ | `orders.crm_organization_id`; фильтр в **`GET /order`** |
+| `netTotal`, контакты из профиля или override | ✅ | `OrderResponseDto`, `OrderMapper` |
+| Резерв склада при оформлении | ✅ | `OrderServiceImpl` + `stock_quantity` (§13) |
+
+---
+
+## 10. CRM — контрагент (ТЗ §4)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| ИНН | ✅ | `crm_organization.inn` (V036) |
+| Филиалы / несколько адресов | ✅ | `crm_organization_branch`, **`/crm/organizations/{id}/branches`** |
+| Контакт: должность, соцсети | ✅ | V037: `position_title`, `social_links` |
+
+Дополняет §1 (базовая карточка организации).
+
+---
+
+## 11. График поставок (ТЗ §5)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| Дата, время, адрес, объект, продукт, филиал | ✅ | V038 на `crm_supply` |
+| Календарь и фильтры по периоду | ✅ | **`GET /crm/supplies/calendar`**, `supplyAtFrom` / `supplyAtTo` в поиске |
+
+---
+
+## 12. Номенклатура (ТЗ §6)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| Без «Тип/Модификация» | ✅ | V030: удалены `product_type`, `typeName`/`typeIds` из API |
+| Цены витрины | ✅ | `originalPrice`, `finalPrice`, `priceLabel`, `priceLabelHint` |
+| Вкладки доставка / лицензии | ✅ | `deliveryText`, `licensesText` |
+
+---
+
+## 13. Склад (ТЗ §7)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| Остатки на товаре | ✅ | `stock_quantity` (V031) |
+| Резерв / возврат при отмене | ✅ | `OrderServiceImpl`, pessimistic lock |
+| API склада | ✅ | **`GET /product/stock`**, **`PATCH /product/{id}/stock`** |
+
+---
+
+## 14. Карточка покупателя и реферал (ТЗ §8)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| Ручная и автоматическая аналитика | ✅ | `customer_analytics`, computed* из заказов |
+| Менеджер-привлечениеец | ✅ | `brought_by_manager_id`, **`PATCH /account/customer/{id}`** |
+| Реферал **7%** (первый DELIVERED) / **2%** (повторные) | ✅ | V035, `ReferralProperty`, `ReferralServiceImpl` |
+| Комиссия менеджера за приведённых | ✅ | `manager_referral_commission`, **`GET /crm/manager-commissions`** |
+
+---
+
+## 15. Карточка сотрудника (ТЗ §9)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| Должность, соцсеть, реквизиты, display ID | ✅ | `staff_profile` (V039) |
+| API | ✅ | **`GET/PUT /account/{id}/staff-profile`** |
+
+---
+
+## 16. Созвоны (ТЗ §11)
+
+| Требование | Статус | Реализация |
+|------------|--------|------------|
+| Тип взаимодействия | ✅ | `interaction_type`, `CrmInteractionType` (V040) |
+| Созвоны на карточке организации | ✅ | **`GET /crm/organizations/{id}/interactions?interactionType=CALL`** |
+| Фильтр в журнале | ✅ | `interactionType` в **`GET /crm/interactions`** |
+
+---
+
+## 17. Расширения V030–V040 (сводка)
+
+| Область | Статус | Реализация |
+|---------|--------|------------|
+| Удаление `product_type` с витрины | ✅ | V030; маркетплейс-поля цены в `ProductResponseDto` |
+| Остатки товара, резерв при заказе | ✅ | V031; `GET/PATCH /product/stock` |
+| Расширение заказа, PATCH менеджером | ✅ | V032; `PATCH /order/{id}`, фильтр `crmOrganizationId` |
+| Привязка аккаунта к CRM | ✅ | V033; `PATCH /account/customer/{id}` |
+| Аналитика клиента (ручная + computed) | ✅ | V034; `customer_analytics` |
+| Реферал 7% / 2%, комиссия менеджера | ✅ | V035; `manager_referral_commission`, `GET /crm/manager-commissions` |
+| ИНН, филиалы организации | ✅ | V036; `/crm/organizations/{id}/branches` |
+| Контакт: должность, соцсети | ✅ | V037; `position_title`, `social_links` |
+| Календарь поставок | ✅ | V038; `GET /crm/supplies/calendar` |
+| Профиль сотрудника (staff) | ✅ | V039; `GET/PUT /account/{id}/staff-profile` |
+| Тип взаимодействия | ✅ | V040; `interaction_type`, фильтр в `GET /crm/interactions` |
+
+---
+
+## 18. Сопровождение
 
 При изменении CRM обновляйте этот файл, [README.md](../README.md), [PROJECT_PASSPORT.md](PROJECT_PASSPORT.md) и при смысловых изменениях обзор [EXPERT_GUIDE.md](EXPERT_GUIDE.md).

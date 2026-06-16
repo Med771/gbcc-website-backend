@@ -1,5 +1,6 @@
 package backend.website.gbcc.logic.order;
 
+import backend.website.gbcc.model.OrderStatus;
 import lombok.NonNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,17 +20,44 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID>, JpaSp
 
     @NonNull
     @Override
-    @EntityGraph(attributePaths = {"customer"})
+    @EntityGraph(attributePaths = {"customer", "crmOrganization"})
     Page<OrderEntity> findAll(@NonNull Specification<OrderEntity> spec, @NonNull Pageable pageable);
 
     @Override
-    @EntityGraph(attributePaths = {"customer"})
+    @EntityGraph(attributePaths = {"customer", "crmOrganization"})
     Optional<OrderEntity> findById(UUID id);
 
     @Query(value = "SELECT nextval('orders_display_number_seq')", nativeQuery = true)
     Long nextDisplayNumber();
 
-    @EntityGraph(attributePaths = {"customer", "customer.referredBy"})
+    @EntityGraph(attributePaths = {"customer", "customer.referredBy", "customer.broughtByManager"})
     @Query("SELECT o FROM OrderEntity o WHERE o.id = :id")
     Optional<OrderEntity> findByIdWithCustomerAndReferrer(@Param("id") UUID id);
+
+    long countByCustomer_IdAndStatus(UUID customerId, OrderStatus status);
+
+    @Query("""
+            SELECT COALESCE(SUM(o.totalDiscountedPrice), 0)
+            FROM OrderEntity o
+            WHERE o.customer.id = :customerId AND o.status = :status
+            """)
+    BigDecimal sumTotalDiscountedPriceByCustomerIdAndStatus(
+            @Param("customerId") UUID customerId,
+            @Param("status") OrderStatus status
+    );
+
+    @Query("""
+            SELECT COALESCE(SUM(o.totalDiscountedPrice), 0)
+            FROM OrderEntity o
+            WHERE o.customer.id = :customerId
+              AND o.status = :status
+              AND o.createdAt >= :fromInclusive
+              AND o.createdAt < :toExclusive
+            """)
+    BigDecimal sumTotalDiscountedPriceByCustomerIdAndStatusAndCreatedAtBetween(
+            @Param("customerId") UUID customerId,
+            @Param("status") OrderStatus status,
+            @Param("fromInclusive") Instant fromInclusive,
+            @Param("toExclusive") Instant toExclusive
+    );
 }

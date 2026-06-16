@@ -40,8 +40,25 @@ app:
 
   referral:
     link-base-url: "http://localhost:3000/ref"
-    commission-percent: 5
+    commission-percent-new-client: 7
+    commission-percent-returning-client: 2
     min-withdrawal-amount: 1000
+
+  analytics:
+    enabled: true
+    cookie-name: GBCC_VISITOR_ID
+    cookie-ttl-days: 400
+    cookie-same-site: Lax
+    cookie-enabled: true
+    max-batch-size: 50
+    max-path-length: 1024
+    max-referrer-length: 1024
+    max-user-agent-length: 512
+    max-metadata-chars: 4000
+    top-paths-limit: 15
+    max-event-age-days: 7
+    max-future-skew-minutes: 5
+    honor-dnt: true
 
   swagger:
     title: "GBCC Website API"

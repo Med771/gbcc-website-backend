@@ -1,0 +1,450 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< com.example:gbcc-website-backend >------------------
+[INFO] Building gbcc-website-backend 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco:0.8.12:prepare-agent (jacoco-prepare-agent) @ gbcc-website-backend ---
+[INFO] argLine set to -javaagent:C:\\Users\\User\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=C:\\work\\gbcc\\gbcc-website-backend\\target\\jacoco.exec,excludes=**/dto/**:**/*Dto.class:**/*Dto$*.class
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ gbcc-website-backend ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 41 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ gbcc-website-backend ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 346 source files with javac [debug parameters release 21] to target\classes
+[INFO] /C:/work/gbcc/gbcc-website-backend/src/main/java/backend/website/gbcc/handler/GlobalExceptionHandler.java: C:\work\gbcc\gbcc-website-backend\src\main\java\backend\website\gbcc\handler\GlobalExceptionHandler.java uses or overrides a deprecated API.
+[INFO] /C:/work/gbcc/gbcc-website-backend/src/main/java/backend/website/gbcc/handler/GlobalExceptionHandler.java: Recompile with -Xlint:deprecation for details.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ gbcc-website-backend ---
+[INFO] Copying 3 resources from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ gbcc-website-backend ---
+[INFO] Recompiling the module because of changed dependency.
+[INFO] Compiling 59 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] /C:/work/gbcc/gbcc-website-backend/src/test/java/backend/website/gbcc/logic/cooperationrequest/CooperationRequestServiceImplTest.java: Some input files use unchecked or unsafe operations.
+[INFO] /C:/work/gbcc/gbcc-website-backend/src/test/java/backend/website/gbcc/logic/cooperationrequest/CooperationRequestServiceImplTest.java: Recompile with -Xlint:unchecked for details.
+[INFO] 
+[INFO] --- surefire:3.5.4:test (default-test) @ gbcc-website-backend ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running backend.website.gbcc.filter.JwtAuthenticationFilterTest
+mvn : Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap cl
+asspath has been appended
+C:\Users\User\AppData\Local\Temp\ps-script-82e22b43-b33d-44db-81f5-a12953ca3629.ps1:102 знак:39
++ cd c:\work\gbcc\gbcc-website-backend; mvn test 2>&1 | Out-File -FileP ...
++                                       ~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Java HotSpot(TM...s been appended:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 12.33 s -- in backend.website.gbcc.filter.JwtAuthenticationFilterTest
+[INFO] Running backend.website.gbcc.GbccWebsiteBackendApplicationTests
+18:56:53.153 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [backend.website.gbcc.GbccWebsiteBackendApplicationTests]: GbccWebsiteBackendApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+18:56:53.665 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration backend.website.gbcc.GbccWebsiteBackendApplication for test class backend.website.gbcc.GbccWebsiteBackendApplicationTests
+2026-06-16 18:56:55.933 [] INFO  b.w.g.GbccWebsiteBackendApplicationTests - Starting GbccWebsiteBackendApplicationTests using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:56:55.949 [] INFO  b.w.g.GbccWebsiteBackendApplicationTests - The following 1 profile is active: "test"
+2026-06-16 18:56:56.688 [] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 9.0.1.Final
+2026-06-16 18:56:59.537 [] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-16 18:57:00.127 [] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 570 ms. Found 34 JPA repository interfaces.
+2026-06-16 18:57:02.545 [] INFO  org.testcontainers.images.PullPolicy - Image pull policy will be performed by: DefaultPullPolicy()
+2026-06-16 18:57:02.551 [] INFO  o.t.utility.ImageNameSubstitutor - Image name substitution will be performed by: DefaultImageNameSubstitutor (composite of 'ConfigurationFileImageNameSubstitutor' and 'PrefixingImageNameSubstitutor')
+2026-06-16 18:57:02.589 [] INFO  org.testcontainers.DockerClientFactory - Testcontainers version: 2.0.3
+2026-06-16 18:57:03.592 [] INFO  o.t.d.DockerClientProviderStrategy - Loaded org.testcontainers.dockerclient.NpipeSocketClientProviderStrategy from ~/.testcontainers.properties, will try it first
+2026-06-16 18:57:04.817 [] INFO  o.t.d.DockerClientProviderStrategy - Found Docker environment with local Npipe socket (npipe:////./pipe/docker_engine)
+2026-06-16 18:57:04.821 [] INFO  org.testcontainers.DockerClientFactory - Docker host IP address is localhost
+2026-06-16 18:57:04.854 [] INFO  org.testcontainers.DockerClientFactory - Connected to docker: 
+  Server Version: 29.2.1
+  API Version: 1.53
+  Operating System: Docker Desktop
+  Total Memory: 7864 MB
+  Labels: 
+    com.docker.desktop.address=npipe://\\.\pipe\docker_cli
+2026-06-16 18:57:04.964 [] INFO  tc.testcontainers/ryuk:0.13.0 - Creating container for image: testcontainers/ryuk:0.13.0
+2026-06-16 18:57:05.048 [] INFO  o.t.utility.RegistryAuthLocator - Credential helper/store (docker-credential-desktop) does not have credentials for https://index.docker.io/v1/
+2026-06-16 18:57:05.303 [] INFO  tc.testcontainers/ryuk:0.13.0 - Container testcontainers/ryuk:0.13.0 is starting: be2ae1c27861e3e4d1fa7b00fb4be2907cc0f24f31a66025b8537e26175bd59a
+2026-06-16 18:57:05.810 [] INFO  tc.testcontainers/ryuk:0.13.0 - Container testcontainers/ryuk:0.13.0 started in PT0.8460835S
+2026-06-16 18:57:05.818 [] INFO  o.t.utility.RyukResourceReaper - Ryuk started - will monitor and terminate Testcontainers containers on JVM exit
+2026-06-16 18:57:05.819 [] INFO  org.testcontainers.DockerClientFactory - Checking the system...
+2026-06-16 18:57:05.820 [] INFO  org.testcontainers.DockerClientFactory - ?? Docker server version should be at least 1.6.0
+2026-06-16 18:57:05.821 [] INFO  tc.postgres:17 - Creating container for image: postgres:17
+2026-06-16 18:57:05.894 [] INFO  tc.postgres:17 - Container postgres:17 is starting: f92757ec91977aeafe515f9faf79a9ccff9d1bbfa3d4f165221bd0d8d6203938
+2026-06-16 18:57:06.953 [] INFO  tc.postgres:17 - Container postgres:17 started in PT1.1326604S
+2026-06-16 18:57:06.955 [] INFO  tc.postgres:17 - Container is started (JDBC URL: jdbc:postgresql://localhost:54187/gbcc?loggerLevel=OFF)
+2026-06-16 18:57:07.965 [] INFO  org.flywaydb.core.FlywayExecutor - Database: jdbc:postgresql://localhost:54187/gbcc?loggerLevel=OFF (PostgreSQL 17.7)
+2026-06-16 18:57:08.371 [] INFO  o.f.c.i.s.JdbcTableSchemaHistory - Schema history table "public"."flyway_schema_history" does not exist yet
+2026-06-16 18:57:08.388 [] INFO  o.f.core.internal.command.DbValidate - Successfully validated 40 migrations (execution time 00:00.228s)
+2026-06-16 18:57:08.413 [] INFO  o.f.c.i.s.JdbcTableSchemaHistory - Creating Schema History table "public"."flyway_schema_history" ...
+2026-06-16 18:57:08.518 [] INFO  o.f.core.internal.command.DbMigrate - Current version of schema "public": << Empty Schema >>
+2026-06-16 18:57:08.540 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "001 - create  file  table"
+2026-06-16 18:57:08.829 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "002 - create  product  class  table"
+2026-06-16 18:57:08.902 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "003 - create  product  series  table"
+2026-06-16 18:57:08.929 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "004 - create  product  type  table"
+2026-06-16 18:57:08.956 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "005 - create  product  table"
+2026-06-16 18:57:08.980 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "006 - create  product  photo  table"
+2026-06-16 18:57:09.007 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "007 - add  product  search  indexes"
+2026-06-16 18:57:09.023 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "008 - add  file  key  constraints"
+2026-06-16 18:57:09.054 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "009 - create  account  table"
+2026-06-16 18:57:09.078 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "010 - create  refresh  token  table"
+2026-06-16 18:57:09.106 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "011 - add  product  discount  percent"
+2026-06-16 18:57:09.134 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "012 - create  order  tables"
+2026-06-16 18:57:09.166 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "013 - create  news  table"
+2026-06-16 18:57:09.186 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "014 - create  promotion  table"
+2026-06-16 18:57:09.218 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "015 - create  support  tables"
+2026-06-16 18:57:09.249 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "016 - add  news  category"
+2026-06-16 18:57:09.271 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "017 - create  contact request  table"
+2026-06-16 18:57:09.297 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "018 - order  history  fields"
+2026-06-16 18:57:09.328 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "019 - product  catalog  popularity"
+2026-06-16 18:57:09.345 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "020 - product  page  content"
+2026-06-16 18:57:09.356 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "021 - create  cooperation request  table"
+2026-06-16 18:57:09.376 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "022 - account  profile  names"
+2026-06-16 18:57:09.404 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "023 - referral  program"
+2026-06-16 18:57:09.437 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "024 - crm organization"
+2026-06-16 18:57:09.463 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "025 - crm interaction"
+2026-06-16 18:57:09.489 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "026 - crm task"
+2026-06-16 18:57:09.515 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "027 - crm lead"
+2026-06-16 18:57:09.536 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "028 - crm supply contract map"
+2026-06-16 18:57:09.558 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "029 - site analytics events"
+2026-06-16 18:57:09.579 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "030 - product remove type"
+2026-06-16 18:57:09.599 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "031 - product stock"
+2026-06-16 18:57:09.620 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "032 - order extensions"
+2026-06-16 18:57:09.648 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "033 - account crm link"
+2026-06-16 18:57:09.669 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "034 - customer analytics"
+2026-06-16 18:57:09.697 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "035 - manager commission"
+2026-06-16 18:57:09.725 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "036 - crm organization inn branches"
+2026-06-16 18:57:09.738 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "037 - crm contact social"
+2026-06-16 18:57:09.751 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "038 - crm supply calendar"
+2026-06-16 18:57:09.787 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "039 - staff profile"
+2026-06-16 18:57:09.813 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "040 - crm interaction type"
+2026-06-16 18:57:09.839 [] INFO  o.f.core.internal.command.DbMigrate - Successfully applied 40 migrations to schema "public", now at version v040 (execution time 00:00.449s)
+2026-06-16 18:57:10.049 [] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2026-06-16 18:57:10.136 [] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@bcfebfe
+2026-06-16 18:57:10.141 [] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2026-06-16 18:57:10.272 [] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-16 18:57:10.446 [] INFO  org.hibernate.orm.core - HHH000001: Hibernate ORM core version 7.2.4.Final
+2026-06-16 18:57:11.279 [] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-16 18:57:11.539 [] INFO  org.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:54187/gbcc?loggerLevel=OFF]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 17.7
+	Default catalog/schema: gbcc/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-16 18:57:15.096 [] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-16 18:57:15.112 [] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-16 18:57:15.288 [] INFO  o.s.d.j.r.query.QueryEnhancerFactories - Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-06-16 18:57:21.532 [] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-16 18:57:21.897 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:57:24.345 [] INFO  b.w.g.GbccWebsiteBackendApplicationTests - Started GbccWebsiteBackendApplicationTests in 30.207 seconds (process running for 46.532)
+2026-06-16 18:57:25.865 [] WARN  o.s.core.events.SpringDocAppInitializer - SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-06-16 18:57:25.865 [] WARN  o.s.core.events.SpringDocAppInitializer - SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 33.23 s -- in backend.website.gbcc.GbccWebsiteBackendApplicationTests
+[INFO] Running backend.website.gbcc.handler.GlobalExceptionHandlerTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.169 s -- in backend.website.gbcc.handler.GlobalExceptionHandlerTest
+[INFO] Running backend.website.gbcc.helper.AuthCookieHelperTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.093 s -- in backend.website.gbcc.helper.AuthCookieHelperTest
+[INFO] Running backend.website.gbcc.helper.JwtTokenHelperTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.085 s -- in backend.website.gbcc.helper.JwtTokenHelperTest
+[INFO] Running backend.website.gbcc.helper.SecurityContextHelperTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.064 s -- in backend.website.gbcc.helper.SecurityContextHelperTest
+[INFO] Running backend.website.gbcc.helper.TokenHashHelperTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.020 s -- in backend.website.gbcc.helper.TokenHashHelperTest
+[INFO] Running backend.website.gbcc.integration.CustomerAuthFlowIntegrationTest
+2026-06-16 18:57:27.166 [] INFO  b.w.g.i.CustomerAuthFlowIntegrationTest - Starting CustomerAuthFlowIntegrationTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:57:27.167 [] INFO  b.w.g.i.CustomerAuthFlowIntegrationTest - The following 1 profile is active: "test"
+2026-06-16 18:57:29.236 [] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-06-16 18:57:29.584 [] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 340 ms. Found 34 JPA repository interfaces.
+2026-06-16 18:57:30.599 [] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat initialized with port 0 (http)
+2026-06-16 18:57:30.646 [] INFO  o.apache.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-auto-1"]
+2026-06-16 18:57:30.650 [] INFO  o.apache.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-16 18:57:30.650 [] INFO  org.apache.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/11.0.18]
+2026-06-16 18:57:30.848 [] INFO  o.s.b.w.c.s.WebApplicationContextInitializer - Root WebApplicationContext: initialization completed in 3676 ms
+2026-06-16 18:57:30.886 [] INFO  tc.postgres:17 - Creating container for image: postgres:17
+2026-06-16 18:57:30.994 [] INFO  tc.postgres:17 - Container postgres:17 is starting: 1a9c19f9d682f39e283f0b9e0a4349fe1be85e9832fc280b3fecc4762c9875e1
+2026-06-16 18:57:32.177 [] INFO  tc.postgres:17 - Container postgres:17 started in PT1.291797S
+2026-06-16 18:57:32.179 [] INFO  tc.postgres:17 - Container is started (JDBC URL: jdbc:postgresql://localhost:59101/gbcc?loggerLevel=OFF)
+2026-06-16 18:57:32.823 [] INFO  org.flywaydb.core.FlywayExecutor - Database: jdbc:postgresql://localhost:59101/gbcc?loggerLevel=OFF (PostgreSQL 17.7)
+2026-06-16 18:57:32.889 [] INFO  o.f.c.i.s.JdbcTableSchemaHistory - Schema history table "public"."flyway_schema_history" does not exist yet
+2026-06-16 18:57:32.893 [] INFO  o.f.core.internal.command.DbValidate - Successfully validated 40 migrations (execution time 00:00.044s)
+2026-06-16 18:57:32.936 [] INFO  o.f.c.i.s.JdbcTableSchemaHistory - Creating Schema History table "public"."flyway_schema_history" ...
+2026-06-16 18:57:32.997 [] INFO  o.f.core.internal.command.DbMigrate - Current version of schema "public": << Empty Schema >>
+2026-06-16 18:57:33.012 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "001 - create  file  table"
+2026-06-16 18:57:33.102 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "002 - create  product  class  table"
+2026-06-16 18:57:33.143 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "003 - create  product  series  table"
+2026-06-16 18:57:33.176 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "004 - create  product  type  table"
+2026-06-16 18:57:33.202 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "005 - create  product  table"
+2026-06-16 18:57:33.238 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "006 - create  product  photo  table"
+2026-06-16 18:57:33.281 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "007 - add  product  search  indexes"
+2026-06-16 18:57:33.316 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "008 - add  file  key  constraints"
+2026-06-16 18:57:33.354 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "009 - create  account  table"
+2026-06-16 18:57:33.379 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "010 - create  refresh  token  table"
+2026-06-16 18:57:33.446 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "011 - add  product  discount  percent"
+2026-06-16 18:57:33.509 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "012 - create  order  tables"
+2026-06-16 18:57:33.596 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "013 - create  news  table"
+2026-06-16 18:57:33.637 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "014 - create  promotion  table"
+2026-06-16 18:57:33.681 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "015 - create  support  tables"
+2026-06-16 18:57:33.746 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "016 - add  news  category"
+2026-06-16 18:57:33.783 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "017 - create  contact request  table"
+2026-06-16 18:57:33.871 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "018 - order  history  fields"
+2026-06-16 18:57:33.956 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "019 - product  catalog  popularity"
+2026-06-16 18:57:33.996 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "020 - product  page  content"
+2026-06-16 18:57:34.035 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "021 - create  cooperation request  table"
+2026-06-16 18:57:34.068 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "022 - account  profile  names"
+2026-06-16 18:57:34.102 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "023 - referral  program"
+2026-06-16 18:57:34.147 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "024 - crm organization"
+2026-06-16 18:57:34.205 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "025 - crm interaction"
+2026-06-16 18:57:34.289 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "026 - crm task"
+2026-06-16 18:57:34.386 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "027 - crm lead"
+2026-06-16 18:57:34.436 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "028 - crm supply contract map"
+2026-06-16 18:57:34.492 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "029 - site analytics events"
+2026-06-16 18:57:34.554 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "030 - product remove type"
+2026-06-16 18:57:34.655 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "031 - product stock"
+2026-06-16 18:57:34.686 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "032 - order extensions"
+2026-06-16 18:57:34.745 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "033 - account crm link"
+2026-06-16 18:57:34.767 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "034 - customer analytics"
+2026-06-16 18:57:34.797 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "035 - manager commission"
+2026-06-16 18:57:34.846 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "036 - crm organization inn branches"
+2026-06-16 18:57:34.881 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "037 - crm contact social"
+2026-06-16 18:57:34.902 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "038 - crm supply calendar"
+2026-06-16 18:57:34.961 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "039 - staff profile"
+2026-06-16 18:57:35.012 [] INFO  o.f.core.internal.command.DbMigrate - Migrating schema "public" to version "040 - crm interaction type"
+2026-06-16 18:57:35.056 [] INFO  o.f.core.internal.command.DbMigrate - Successfully applied 40 migrations to schema "public", now at version v040 (execution time 00:00.949s)
+2026-06-16 18:57:35.164 [] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-2 - Starting...
+2026-06-16 18:57:35.238 [] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-2 - Added connection org.postgresql.jdbc.PgConnection@982ef46
+2026-06-16 18:57:35.238 [] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-2 - Start completed.
+2026-06-16 18:57:35.243 [] INFO  org.hibernate.orm.jpa - HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-06-16 18:57:35.313 [] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-06-16 18:57:35.334 [] INFO  org.hibernate.orm.connections.pooling - HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://localhost:59101/gbcc?loggerLevel=OFF]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 17.7
+	Default catalog/schema: gbcc/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-06-16 18:57:36.530 [] INFO  org.hibernate.orm.core - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-06-16 18:57:36.533 [] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-06-16 18:57:38.102 [] WARN  o.s.b.j.a.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-06-16 18:57:38.243 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:57:39.369 [] INFO  o.apache.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-auto-1"]
+2026-06-16 18:57:39.431 [] INFO  o.s.boot.tomcat.TomcatWebServer - Tomcat started on port 59116 (http) with context path '/'
+2026-06-16 18:57:39.438 [] INFO  b.w.g.i.CustomerAuthFlowIntegrationTest - Started CustomerAuthFlowIntegrationTest in 12.686 seconds (process running for 61.624)
+2026-06-16 18:57:39.810 [] WARN  o.s.core.events.SpringDocAppInitializer - SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-06-16 18:57:39.810 [] WARN  o.s.core.events.SpringDocAppInitializer - SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+2026-06-16 18:57:40.315 [] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-16 18:57:40.316 [] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-16 18:57:40.318 [] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 2 ms
+2026-06-16 18:57:42.498 [] WARN  org.hibernate.orm.jdbc.error - HHH000247: ErrorCode: 0, SQLState: 23505
+2026-06-16 18:57:42.498 [] WARN  org.hibernate.orm.jdbc.error - ERROR: duplicate key value violates unique constraint "uq_account_email"
+  ╧юфЁюсэюёЄш: Key (email)=(dup-bb891d54-1c05-4b2b-be43-4d035dcc674f@example.com) already exists.
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 17.43 s -- in backend.website.gbcc.integration.CustomerAuthFlowIntegrationTest
+[INFO] Running backend.website.gbcc.integration.OrderLifecycleIntegrationTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.353 s -- in backend.website.gbcc.integration.OrderLifecycleIntegrationTest
+[INFO] Running backend.website.gbcc.integration.PublicReadEndpointsIntegrationTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.345 s -- in backend.website.gbcc.integration.PublicReadEndpointsIntegrationTest
+[INFO] Running backend.website.gbcc.integration.SiteAnalyticsIntegrationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.489 s -- in backend.website.gbcc.integration.SiteAnalyticsIntegrationTest
+[INFO] Running backend.website.gbcc.logic.account.AccountServiceImplTest
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.304 s -- in backend.website.gbcc.logic.account.AccountServiceImplTest
+[INFO] Running backend.website.gbcc.logic.analytics.SiteAnalyticsCollectServiceImplTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.447 s -- in backend.website.gbcc.logic.analytics.SiteAnalyticsCollectServiceImplTest
+[INFO] Running backend.website.gbcc.logic.auth.AuthServiceImplTest
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.841 s -- in backend.website.gbcc.logic.auth.AuthServiceImplTest
+[INFO] Running backend.website.gbcc.logic.contactrequest.ContactRequestServiceImplTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.709 s -- in backend.website.gbcc.logic.contactrequest.ContactRequestServiceImplTest
+[INFO] Running backend.website.gbcc.logic.cooperationrequest.CooperationRequestServiceImplTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.981 s -- in backend.website.gbcc.logic.cooperationrequest.CooperationRequestServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.access.CrmAccessPolicyTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.188 s -- in backend.website.gbcc.logic.crm.access.CrmAccessPolicyTest
+[INFO] Running backend.website.gbcc.logic.crm.analytics.CrmSiteAnalyticsServiceImplTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.255 s -- in backend.website.gbcc.logic.crm.analytics.CrmSiteAnalyticsServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.contract.CrmContractServiceImplTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.836 s -- in backend.website.gbcc.logic.crm.contract.CrmContractServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.interaction.CrmInteractionServiceImplTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.932 s -- in backend.website.gbcc.logic.crm.interaction.CrmInteractionServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.lead.CrmLeadServiceImplTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.456 s -- in backend.website.gbcc.logic.crm.lead.CrmLeadServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.map.CrmMapServiceImplTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.473 s -- in backend.website.gbcc.logic.crm.map.CrmMapServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.organization.CrmOrganizationServiceImplTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.583 s -- in backend.website.gbcc.logic.crm.organization.CrmOrganizationServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.supply.CrmSupplyServiceImplTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.403 s -- in backend.website.gbcc.logic.crm.supply.CrmSupplyServiceImplTest
+[INFO] Running backend.website.gbcc.logic.crm.task.CrmTaskServiceImplTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.076 s -- in backend.website.gbcc.logic.crm.task.CrmTaskServiceImplTest
+[INFO] Running backend.website.gbcc.logic.customeranalytics.CustomerAnalyticsServiceTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.370 s -- in backend.website.gbcc.logic.customeranalytics.CustomerAnalyticsServiceTest
+[INFO] Running backend.website.gbcc.logic.file.FileMapperTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s -- in backend.website.gbcc.logic.file.FileMapperTest
+[INFO] Running backend.website.gbcc.logic.file.LocalStorageServiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.348 s -- in backend.website.gbcc.logic.file.LocalStorageServiceTest
+[INFO] Running backend.website.gbcc.logic.managercommission.ManagerCommissionServiceTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.486 s -- in backend.website.gbcc.logic.managercommission.ManagerCommissionServiceTest
+[INFO] Running backend.website.gbcc.logic.news.NewsServiceImplTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.371 s -- in backend.website.gbcc.logic.news.NewsServiceImplTest
+[INFO] Running backend.website.gbcc.logic.order.OrderServiceImplTest
+[INFO] Tests run: 22, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.479 s -- in backend.website.gbcc.logic.order.OrderServiceImplTest
+[INFO] Running backend.website.gbcc.logic.product.productphoto.ProductPhotoServiceImplTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.385 s -- in backend.website.gbcc.logic.product.productphoto.ProductPhotoServiceImplTest
+[INFO] Running backend.website.gbcc.logic.product.ProductServiceImplTest
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.459 s -- in backend.website.gbcc.logic.product.ProductServiceImplTest
+[INFO] Running backend.website.gbcc.logic.promotion.PromotionDiscountResolverTest
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.353 s -- in backend.website.gbcc.logic.promotion.PromotionDiscountResolverTest
+[INFO] Running backend.website.gbcc.logic.promotion.PromotionServiceImplTest
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.242 s -- in backend.website.gbcc.logic.promotion.PromotionServiceImplTest
+[INFO] Running backend.website.gbcc.logic.referral.ReferralCodeNormalizerTest
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.068 s -- in backend.website.gbcc.logic.referral.ReferralCodeNormalizerTest
+[INFO] Running backend.website.gbcc.logic.referral.ReferralServiceImplTest
+[INFO] Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.400 s -- in backend.website.gbcc.logic.referral.ReferralServiceImplTest
+[INFO] Running backend.website.gbcc.logic.support.SupportServiceImplTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.848 s -- in backend.website.gbcc.logic.support.SupportServiceImplTest
+[INFO] Running backend.website.gbcc.web.AccountControllerWebMvcTest
+2026-06-16 18:58:09.889 [] INFO  b.w.gbcc.web.AccountControllerWebMvcTest - Starting AccountControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:09.913 [] INFO  b.w.gbcc.web.AccountControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:13.161 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:13.854 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:13.854 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:13.870 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 16 ms
+2026-06-16 18:58:14.018 [] INFO  b.w.gbcc.web.AccountControllerWebMvcTest - Started AccountControllerWebMvcTest in 4.82 seconds (process running for 96.206)
+[INFO] Tests run: 14, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.523 s -- in backend.website.gbcc.web.AccountControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.AuthControllerWebMvcTest
+2026-06-16 18:58:15.487 [] INFO  b.w.gbcc.web.AuthControllerWebMvcTest - Starting AuthControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:15.487 [] INFO  b.w.gbcc.web.AuthControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:18.344 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:18.501 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:18.501 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:18.502 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:18.528 [] INFO  b.w.gbcc.web.AuthControllerWebMvcTest - Started AuthControllerWebMvcTest in 3.159 seconds (process running for 100.715)
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 3.319 s -- in backend.website.gbcc.web.AuthControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.ContactRequestControllerWebMvcTest
+2026-06-16 18:58:18.719 [] INFO  b.w.g.w.ContactRequestControllerWebMvcTest - Starting ContactRequestControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:18.719 [] INFO  b.w.g.w.ContactRequestControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:19.585 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:19.683 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:19.683 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:19.684 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:19.692 [] INFO  b.w.g.w.ContactRequestControllerWebMvcTest - Started ContactRequestControllerWebMvcTest in 1.039 seconds (process running for 101.879)
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.300 s -- in backend.website.gbcc.web.ContactRequestControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.CooperationRequestControllerWebMvcTest
+2026-06-16 18:58:20.118 [] INFO  b.w.g.w.CooperationRequestControllerWebMvcTest - Starting CooperationRequestControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:20.118 [] INFO  b.w.g.w.CooperationRequestControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:21.552 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:21.967 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:21.967 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:21.968 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:22.126 [] INFO  b.w.g.w.CooperationRequestControllerWebMvcTest - Started CooperationRequestControllerWebMvcTest in 2.097 seconds (process running for 104.313)
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.406 s -- in backend.website.gbcc.web.CooperationRequestControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.CrmOrganizationControllerWebMvcTest
+2026-06-16 18:58:22.428 [] INFO  b.w.g.w.CrmOrganizationControllerWebMvcTest - Starting CrmOrganizationControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:22.429 [] INFO  b.w.g.w.CrmOrganizationControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:23.347 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:23.468 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:23.468 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:23.474 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 6 ms
+2026-06-16 18:58:23.485 [] INFO  b.w.g.w.CrmOrganizationControllerWebMvcTest - Started CrmOrganizationControllerWebMvcTest in 1.124 seconds (process running for 105.671)
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.274 s -- in backend.website.gbcc.web.CrmOrganizationControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.CrmSiteAnalyticsControllerWebMvcTest
+2026-06-16 18:58:23.850 [] INFO  b.w.g.w.CrmSiteAnalyticsControllerWebMvcTest - Starting CrmSiteAnalyticsControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:23.850 [] INFO  b.w.g.w.CrmSiteAnalyticsControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:24.819 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:24.914 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:24.914 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:24.916 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 2 ms
+2026-06-16 18:58:24.927 [] INFO  b.w.g.w.CrmSiteAnalyticsControllerWebMvcTest - Started CrmSiteAnalyticsControllerWebMvcTest in 1.228 seconds (process running for 107.115)
+[INFO] Tests run: 3, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.430 s -- in backend.website.gbcc.web.CrmSiteAnalyticsControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.FileControllerWebMvcTest
+2026-06-16 18:58:25.157 [] INFO  b.w.gbcc.web.FileControllerWebMvcTest - Starting FileControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:25.157 [] INFO  b.w.gbcc.web.FileControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:26.308 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:26.432 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:26.433 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:26.434 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:26.449 [] INFO  b.w.gbcc.web.FileControllerWebMvcTest - Started FileControllerWebMvcTest in 1.368 seconds (process running for 108.636)
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.600 s -- in backend.website.gbcc.web.FileControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.NewsControllerWebMvcTest
+2026-06-16 18:58:26.726 [] INFO  b.w.gbcc.web.NewsControllerWebMvcTest - Starting NewsControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:26.727 [] INFO  b.w.gbcc.web.NewsControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:27.354 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:27.413 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:27.414 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:27.415 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:27.425 [] INFO  b.w.gbcc.web.NewsControllerWebMvcTest - Started NewsControllerWebMvcTest in 0.763 seconds (process running for 109.612)
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.216 s -- in backend.website.gbcc.web.NewsControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.OrderControllerWebMvcTest
+2026-06-16 18:58:27.918 [] INFO  b.w.gbcc.web.OrderControllerWebMvcTest - Starting OrderControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:27.918 [] INFO  b.w.gbcc.web.OrderControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:28.633 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:28.730 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:28.735 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:28.736 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:28.748 [] INFO  b.w.gbcc.web.OrderControllerWebMvcTest - Started OrderControllerWebMvcTest in 0.868 seconds (process running for 110.936)
+[INFO] Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.201 s -- in backend.website.gbcc.web.OrderControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.ProductControllerWebMvcTest
+2026-06-16 18:58:29.117 [] INFO  b.w.gbcc.web.ProductControllerWebMvcTest - Starting ProductControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:29.117 [] INFO  b.w.gbcc.web.ProductControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:29.827 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:29.962 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:29.962 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:29.963 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:29.975 [] INFO  b.w.gbcc.web.ProductControllerWebMvcTest - Started ProductControllerWebMvcTest in 0.9 seconds (process running for 112.162)
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.398 s -- in backend.website.gbcc.web.ProductControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.PromotionControllerWebMvcTest
+2026-06-16 18:58:30.545 [] INFO  b.w.g.web.PromotionControllerWebMvcTest - Starting PromotionControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:30.545 [] INFO  b.w.g.web.PromotionControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:31.097 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:31.234 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:31.234 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:31.247 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 13 ms
+2026-06-16 18:58:31.278 [] INFO  b.w.g.web.PromotionControllerWebMvcTest - Started PromotionControllerWebMvcTest in 0.791 seconds (process running for 113.465)
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.775 s -- in backend.website.gbcc.web.PromotionControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.ReferralControllerWebMvcTest
+2026-06-16 18:58:32.406 [] INFO  b.w.g.web.ReferralControllerWebMvcTest - Starting ReferralControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:32.406 [] INFO  b.w.g.web.ReferralControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:33.226 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:33.463 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:33.463 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:33.473 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 10 ms
+2026-06-16 18:58:33.569 [] INFO  b.w.g.web.ReferralControllerWebMvcTest - Started ReferralControllerWebMvcTest in 1.208 seconds (process running for 115.746)
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.730 s -- in backend.website.gbcc.web.ReferralControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.SiteAnalyticsCollectControllerWebMvcTest
+2026-06-16 18:58:34.150 [] INFO  b.w.g.w.SiteAnalyticsCollectControllerWebMvcTest - Starting SiteAnalyticsCollectControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:34.150 [] INFO  b.w.g.w.SiteAnalyticsCollectControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:34.895 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:34.998 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:34.998 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:35.000 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 2 ms
+2026-06-16 18:58:35.017 [] INFO  b.w.g.w.SiteAnalyticsCollectControllerWebMvcTest - Started SiteAnalyticsCollectControllerWebMvcTest in 0.981 seconds (process running for 117.202)
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.205 s -- in backend.website.gbcc.web.SiteAnalyticsCollectControllerWebMvcTest
+[INFO] Running backend.website.gbcc.web.SupportControllerWebMvcTest
+2026-06-16 18:58:35.241 [] INFO  b.w.gbcc.web.SupportControllerWebMvcTest - Starting SupportControllerWebMvcTest using Java 21.0.9 with PID 33784 (started by User in C:\work\gbcc\gbcc-website-backend)
+2026-06-16 18:58:35.241 [] INFO  b.w.gbcc.web.SupportControllerWebMvcTest - No active profile set, falling back to 1 default profile: "default"
+2026-06-16 18:58:36.152 [] INFO  o.s.s.c.a.a.c.InitializeUserDetailsBeanManagerConfigurer$InitializeUserDetailsManagerConfigurer - Global AuthenticationManager configured with UserDetailsService bean with name userDetailsService
+2026-06-16 18:58:36.291 [] INFO  o.s.b.t.m.w.SpringBootMockServletContext - Initializing Spring TestDispatcherServlet ''
+2026-06-16 18:58:36.292 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Initializing Servlet ''
+2026-06-16 18:58:36.293 [] INFO  o.s.t.web.servlet.TestDispatcherServlet - Completed initialization in 1 ms
+2026-06-16 18:58:36.308 [] INFO  b.w.gbcc.web.SupportControllerWebMvcTest - Started SupportControllerWebMvcTest in 1.094 seconds (process running for 118.495)
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.492 s -- in backend.website.gbcc.web.SupportControllerWebMvcTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[INFO] Tests run: 286, Failures: 0, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  02:43 min
+[INFO] Finished at: 2026-06-16T18:58:39+03:00
+[INFO] ------------------------------------------------------------------------

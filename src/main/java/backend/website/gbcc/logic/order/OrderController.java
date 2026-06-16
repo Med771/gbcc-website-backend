@@ -4,6 +4,7 @@ import backend.website.gbcc.config.OpenApiConstants;
 import backend.website.gbcc.logic.order.dto.CreateOrderRequestDto;
 import backend.website.gbcc.logic.order.dto.OrderResponseDto;
 import backend.website.gbcc.logic.order.dto.OrderSearchRequestDto;
+import backend.website.gbcc.logic.order.dto.PatchOrderManagerRequestDto;
 import backend.website.gbcc.logic.order.dto.UpdateOrderStatusRequestDto;
 import backend.website.gbcc.model.OrderStatus;
 import backend.website.gbcc.model.dto.PageResponse;
@@ -100,11 +101,24 @@ public class OrderController {
     public PageResponse<OrderResponseDto> search(
             @RequestParam(required = false) UUID customerId,
             @RequestParam(required = false) OrderStatus status,
+            @RequestParam(required = false) UUID crmOrganizationId,
             @Parameter(hidden = true) Pageable pageable
     ) {
-        OrderSearchRequestDto requestDto = new OrderSearchRequestDto(customerId, status);
+        OrderSearchRequestDto requestDto = new OrderSearchRequestDto(customerId, status, crmOrganizationId);
         Page<OrderResponseDto> result = orderService.search(requestDto, pageable);
         return PageResponse.fromPage(result);
+    }
+
+    @Operation(summary = "Редактирование заказа менеджером", description = """
+            JWT. Только ADMIN/OWNER. Контакты, заметки, доставка, привязка к CRM-организации.
+            """)
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @PatchMapping("/{orderId}")
+    public OrderResponseDto patchByManager(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody PatchOrderManagerRequestDto requestDto
+    ) {
+        return orderService.patchByManager(orderId, requestDto);
     }
 
     @Operation(summary = "Изменить статус заказа", description = """

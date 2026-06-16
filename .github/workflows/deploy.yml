@@ -1,0 +1,46 @@
+# Деплой при push в main: пересборка и перезапуск сервиса backend в Docker Compose на удалённом хосте.
+#
+# Настройте в репозитории GitHub → Settings → Secrets and variables → Actions:
+#   DEPLOY_HOST              — хост (IP или DNS)
+#   DEPLOY_USER              — пользователь SSH
+#   DEPLOY_SSH_PRIVATE_KEY   — приватный ключ (весь PEM, включая BEGIN/END)
+#   DEPLOY_PATH              — каталог на сервере, где лежит docker-compose.yml с сервисом backend
+#
+# Нестандартный порт SSH: добавьте в шаг `with` строку
+#   port: ${{ secrets.DEPLOY_SSH_PORT }}
+# и задайте секрет DEPLOY_SSH_PORT.
+#
+# Альтернатива без SSH: зарегистрируйте self-hosted runner на той же машине, что и Compose,
+# замените runs-on на self-hosted, добавьте actions/checkout и выполните ту же команду в DEPLOY_PATH.
+
+name: Deploy backend
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-main
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: docker compose up -d --build backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Rebuild backend via SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          script_stop: true
+          envs: DEPLOY_PATH
+          script: |
+            set -eu
+            cd "$DEPLOY_PATH"
+            docker compose up -d --build backend
+        env:
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}

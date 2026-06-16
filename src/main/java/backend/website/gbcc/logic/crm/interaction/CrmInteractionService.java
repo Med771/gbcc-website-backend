@@ -21,5 +21,5 @@ public interface CrmInteractionService {
 
     PageResponse<CrmInteractionResponseDto> search(UUID organizationId, UUID leadId, UUID authorId,
                                                     Instant occurredFrom, Instant occurredTo, String resultFragment,
-                                                    Pageable pageable);
+                                                    CrmInteractionType interactionType, Pageable pageable);
 }

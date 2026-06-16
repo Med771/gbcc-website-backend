@@ -28,6 +28,12 @@ public class CrmOrganizationContactEntity extends BaseEntity {
     @Column(length = 255)
     private String department;
 
+    @Column(name = "position_title")
+    private String positionTitle;
+
+    @Column(name = "social_links", columnDefinition = "text")
+    private String socialLinks;
+
     @Column(length = 64)
     private String phone;
 

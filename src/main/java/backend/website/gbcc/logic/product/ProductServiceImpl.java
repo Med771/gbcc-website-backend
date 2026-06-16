@@ -1,25 +1,23 @@
 package backend.website.gbcc.logic.product;
 
+import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.logic.product.dto.AttachProductPhotoRequestDto;
-import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
 import backend.website.gbcc.logic.product.dto.CreateProductRequestDto;
 import backend.website.gbcc.logic.product.dto.GroupedCatalogSearchResponseDto;
+import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
+import backend.website.gbcc.logic.product.dto.PatchProductStockRequestDto;
 import backend.website.gbcc.logic.product.dto.ProductClassResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
+import backend.website.gbcc.logic.product.dto.ProductStockResponseDto;
 import backend.website.gbcc.logic.product.dto.UpdateProductRequestDto;
 import backend.website.gbcc.logic.product.productclass.ProductClassEntity;
 import backend.website.gbcc.logic.product.productclass.ProductClassRepository;
 import backend.website.gbcc.logic.product.productclass.ProductClassSpecification;
 import backend.website.gbcc.logic.product.productphoto.ProductPhotoService;
-
-import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.tool.ProductClassTool;
 import backend.website.gbcc.tool.ProductSeriesTool;
-import backend.website.gbcc.tool.ProductTypeTool;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,28 +29,22 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
-
     private final ProductClassRepository productClassRepository;
-
     private final ProductPhotoService productPhotoService;
-
     private final ProductMapper productMapper;
-
     private final ProductClassTool productClassTool;
     private final ProductSeriesTool productSeriesTool;
-    private final ProductTypeTool productTypeTool;
-
     private final SecurityContextHelper securityContextHelper;
 
     @Override
@@ -92,9 +84,8 @@ public class ProductServiceImpl implements ProductService {
         validateDiscountPercent(requestDto.discountPercent());
         var productClass = productClassTool.getOrCreate(requestDto.className());
         var productSeries = productSeriesTool.getOrCreate(requestDto.seriesName());
-        var productType = productTypeTool.getOrCreate(requestDto.typeName());
 
-        ProductEntity entity = productMapper.toEntity(requestDto, productClass, productSeries, productType);
+        ProductEntity entity = productMapper.toEntity(requestDto, productClass, productSeries);
         ProductEntity saved = productRepository.save(entity);
         return productMapper.toResponse(saved, Collections.emptyList());
     }
@@ -109,11 +100,9 @@ public class ProductServiceImpl implements ProductService {
 
         var productClass = productClassTool.getOrCreate(requestDto.className());
         var productSeries = productSeriesTool.getOrCreate(requestDto.seriesName());
-        var productType = productTypeTool.getOrCreate(requestDto.typeName());
 
         product.setProductClass(productClass);
         product.setProductSeries(productSeries);
-        product.setProductType(productType);
         product.setBrand(requestDto.brand());
         product.setDescription(requestDto.description());
         product.setHeightMm(requestDto.heightMm());
@@ -131,9 +120,12 @@ public class ProductServiceImpl implements ProductService {
             validateInterestCount(requestDto.interestCount());
             product.setInterestCount(requestDto.interestCount());
         }
+        if (requestDto.stockQuantity() != null) {
+            validateStockQuantity(requestDto.stockQuantity());
+            product.setStockQuantity(requestDto.stockQuantity());
+        }
 
         ProductEntity saved = productRepository.save(product);
-
         Map<UUID, List<UUID>> photoIdsByProductId = productPhotoService.getPhotoIdsByProductIds(List.of(saved.getId()));
         return productMapper.toResponse(saved, photoIdsByProductId.getOrDefault(saved.getId(), Collections.emptyList()));
     }
@@ -155,12 +147,6 @@ public class ProductServiceImpl implements ProductService {
         if (requestDto.seriesName() != null) {
             product.setProductSeries(StringUtils.hasText(requestDto.seriesName())
                     ? productSeriesTool.getOrCreate(requestDto.seriesName())
-                    : null);
-        }
-
-        if (requestDto.typeName() != null) {
-            product.setProductType(StringUtils.hasText(requestDto.typeName())
-                    ? productTypeTool.getOrCreate(requestDto.typeName())
                     : null);
         }
 
@@ -212,6 +198,10 @@ public class ProductServiceImpl implements ProductService {
             validateInterestCount(requestDto.interestCount());
             product.setInterestCount(requestDto.interestCount());
         }
+        if (requestDto.stockQuantity() != null) {
+            validateStockQuantity(requestDto.stockQuantity());
+            product.setStockQuantity(requestDto.stockQuantity());
+        }
 
         ProductEntity saved = productRepository.save(product);
         Map<UUID, List<UUID>> photoIdsByProductId = productPhotoService.getPhotoIdsByProductIds(List.of(saved.getId()));
@@ -223,8 +213,7 @@ public class ProductServiceImpl implements ProductService {
     public Page<ProductResponseDto> search(ProductSearchRequestDto requestDto, Pageable pageable) {
         ProductSearchRequestDto safeRequest = requestDto != null
                 ? requestDto
-                : new ProductSearchRequestDto(
-                        null, null, null, null, null, null, null, null, null, null, null, null, null);
+                : new ProductSearchRequestDto(null, null, null, null, null, null, null, null, null, null, null);
         validateSearchRequest(safeRequest);
 
         Page<ProductEntity> products = productRepository.findAll(ProductSpecification.byFilter(safeRequest), pageable);
@@ -241,6 +230,29 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<ProductStockResponseDto> searchStock(ProductSearchRequestDto requestDto, Pageable pageable) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can view stock");
+        ProductSearchRequestDto safe = requestDto != null
+                ? requestDto
+                : new ProductSearchRequestDto(null, null, null, null, null, null, null, null, null, null, null);
+        validateSearchRequest(safe);
+        Page<ProductEntity> products = productRepository.findAll(ProductSpecification.byFilter(safe), pageable);
+        return products.map(this::toStockResponse);
+    }
+
+    @Override
+    @Transactional
+    public ProductStockResponseDto patchStock(UUID productId, PatchProductStockRequestDto requestDto) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can update stock");
+        ProductEntity product = productRepository.findById(productId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+        validateStockQuantity(requestDto.stockQuantity());
+        product.setStockQuantity(requestDto.stockQuantity());
+        return toStockResponse(productRepository.save(product));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public GroupedCatalogSearchResponseDto searchGrouped(String query, int categoryLimit, int productLimit, Boolean isActive) {
         if (!StringUtils.hasText(query) || CatalogSearchText.likeContainsPattern(query) == null) {
             return new GroupedCatalogSearchResponseDto(0, 0, 0, Collections.emptyList(), Collections.emptyList());
@@ -248,7 +260,7 @@ public class ProductServiceImpl implements ProductService {
         String q = query.trim();
         boolean activeOnly = isActive != null ? isActive : Boolean.TRUE;
         ProductSearchRequestDto productFilter = new ProductSearchRequestDto(
-                q, null, null, null, null, null, null, null, null, null, null, null, activeOnly
+                q, null, null, null, null, null, null, null, null, null, activeOnly
         );
         validateSearchRequest(productFilter);
 
@@ -303,6 +315,19 @@ public class ProductServiceImpl implements ProductService {
         productPhotoService.detachPhotoByFileId(productId, fileId);
     }
 
+    private ProductStockResponseDto toStockResponse(ProductEntity product) {
+        return new ProductStockResponseDto(
+                product.getId(),
+                product.getProductClass().getName(),
+                product.getBrand(),
+                product.getHeightMm(),
+                product.getWidthMm(),
+                product.getLengthMm(),
+                product.getStockQuantity(),
+                product.getIsActive()
+        );
+    }
+
     private void validateSearchRequest(ProductSearchRequestDto requestDto) {
         if (requestDto.minPrice() != null && requestDto.maxPrice() != null
                 && requestDto.minPrice().compareTo(requestDto.maxPrice()) > 0) {
@@ -323,6 +348,12 @@ public class ProductServiceImpl implements ProductService {
     private void validateInterestCount(int interestCount) {
         if (interestCount < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "interestCount must be greater than or equal to 0");
+        }
+    }
+
+    private void validateStockQuantity(int stockQuantity) {
+        if (stockQuantity < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "stockQuantity must be greater than or equal to 0");
         }
     }
 

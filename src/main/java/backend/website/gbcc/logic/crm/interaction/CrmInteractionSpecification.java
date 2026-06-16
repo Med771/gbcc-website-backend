@@ -49,4 +49,9 @@ public final class CrmInteractionSpecification {
             return cb.like(cb.lower(root.get("resultNote")), "%" + fragment.trim().toLowerCase() + "%");
         };
     }
+
+    public static Specification<CrmInteractionEntity> interactionTypeEq(CrmInteractionType type) {
+        return (root, query, cb) -> type == null ? cb.conjunction()
+                : cb.equal(root.get("interactionType"), type);
+    }
 }

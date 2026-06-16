@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -25,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -71,8 +74,23 @@ public class CrmSupplyController {
     @GetMapping
     public PageResponse<CrmSupplyResponseDto> search(
             @RequestParam(required = false) UUID organizationId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate supplyAtFrom,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate supplyAtTo,
+            @RequestParam(required = false) CrmSupplyStatus status,
             @Parameter(hidden = true) Pageable pageable
     ) {
-        return supplyService.search(organizationId, pageable);
+        return supplyService.search(organizationId, supplyAtFrom, supplyAtTo, status, pageable);
+    }
+
+    @Operation(summary = "Календарь поставок за период")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @GetMapping("/calendar")
+    public List<CrmSupplyResponseDto> calendar(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) UUID organizationId,
+            @RequestParam(required = false) CrmSupplyStatus status
+    ) {
+        return supplyService.calendar(from, to, organizationId, status);
     }
 }

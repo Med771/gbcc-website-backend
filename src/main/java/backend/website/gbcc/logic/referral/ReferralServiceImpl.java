@@ -20,6 +20,8 @@ import backend.website.gbcc.logic.referral.dto.ReferralWithdrawalCreatedResponse
 import backend.website.gbcc.logic.referral.dto.ReferralWithdrawalRejectRequestDto;
 import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.AccountRole;
+import backend.website.gbcc.model.OrderStatus;
+import backend.website.gbcc.model.ReferralClientType;
 import backend.website.gbcc.model.ReferralWithdrawalStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -124,7 +126,8 @@ public class ReferralServiceImpl implements ReferralService {
                 purchases,
                 available,
                 referralProperty.getMinWithdrawalAmount(),
-                referralProperty.getCommissionPercent(),
+                referralProperty.getCommissionPercentNewClient(),
+                referralProperty.getCommissionPercentReturningClient(),
                 inviteApplied,
                 appliedDisplay
         );
@@ -255,7 +258,11 @@ public class ReferralServiceImpl implements ReferralService {
         }
 
         BigDecimal base = order.getTotalDiscountedPrice();
-        BigDecimal pct = referralProperty.getCommissionPercent();
+        long priorDelivered = orderRepository.countByCustomer_IdAndStatus(buyer.getId(), OrderStatus.DELIVERED);
+        ReferralClientType clientType = priorDelivered <= 1 ? ReferralClientType.NEW : ReferralClientType.RETURNING;
+        BigDecimal pct = clientType == ReferralClientType.NEW
+                ? referralProperty.getCommissionPercentNewClient()
+                : referralProperty.getCommissionPercentReturningClient();
         BigDecimal commission = base.multiply(pct).divide(ONE_HUNDRED, 2, RoundingMode.HALF_UP);
         if (commission.compareTo(BigDecimal.ZERO) <= 0) {
             return;
@@ -266,7 +273,9 @@ public class ReferralServiceImpl implements ReferralService {
         row.setRefereeAccount(buyer);
         row.setOrder(order);
         row.setOrderAmount(base);
+        row.setCommissionPercent(pct);
         row.setCommissionAmount(commission);
+        row.setClientType(clientType);
         referralCommissionRepository.save(row);
     }
 
@@ -300,7 +309,9 @@ public class ReferralServiceImpl implements ReferralService {
                         c.getRefereeAccount().getId(),
                         c.getRefereeAccount().getEmail(),
                         c.getOrderAmount(),
-                        c.getCommissionAmount()
+                        c.getCommissionPercent(),
+                        c.getCommissionAmount(),
+                        c.getClientType()
                 ));
     }
 

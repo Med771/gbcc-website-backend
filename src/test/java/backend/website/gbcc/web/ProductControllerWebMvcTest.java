@@ -47,7 +47,6 @@ class ProductControllerWebMvcTest {
             {
               "className": "Class",
               "seriesName": null,
-              "typeName": null,
               "brand": "Brand",
               "description": null,
               "tagline": null,
@@ -68,7 +67,6 @@ class ProductControllerWebMvcTest {
             {
               "className": "Class",
               "seriesName": null,
-              "typeName": null,
               "brand": "Brand",
               "description": null,
               "tagline": null,

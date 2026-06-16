@@ -3,7 +3,6 @@ package backend.website.gbcc.logic.promotion;
 import backend.website.gbcc.logic.product.ProductEntity;
 import backend.website.gbcc.logic.product.productclass.ProductClassEntity;
 import backend.website.gbcc.logic.product.productseries.ProductSeriesEntity;
-import backend.website.gbcc.logic.product.producttype.ProductTypeEntity;
 import backend.website.gbcc.model.PromotionScopeType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -142,24 +141,6 @@ class PromotionDiscountResolverTest {
         BigDecimal result = resolver.resolveEffectiveDiscountPercent(product, product.getDiscountPercent(), at);
 
         assertThat(result).isEqualByComparingTo("18.00");
-    }
-
-    @Test
-    void productTypeScopeMatches() {
-        ProductTypeEntity type = new ProductTypeEntity();
-        type.setId(UUID.randomUUID());
-        product.setProductType(type);
-
-        PromotionEntity promo = new PromotionEntity();
-        promo.setScope(PromotionScopeType.PRODUCT_TYPE);
-        promo.setScopeReferenceId(type.getId());
-        promo.setDiscountPercent(new BigDecimal("12.00"));
-
-        when(promotionRepository.findAllActiveAt(at)).thenReturn(List.of(promo));
-
-        BigDecimal result = resolver.resolveEffectiveDiscountPercent(product, product.getDiscountPercent(), at);
-
-        assertThat(result).isEqualByComparingTo("12.00");
     }
 
     @Test

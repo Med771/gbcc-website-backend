@@ -3,7 +3,10 @@ package backend.website.gbcc.logic.referral;
 import backend.website.gbcc.logic.account.AccountEntity;
 import backend.website.gbcc.logic.order.OrderEntity;
 import backend.website.gbcc.model.BaseEntity;
+import backend.website.gbcc.model.ReferralClientType;
+import backend.website.gbcc.model.convector.ReferralClientTypeConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -39,4 +42,11 @@ public class ReferralCommissionEntity extends BaseEntity {
 
     @Column(name = "commission_amount", nullable = false, precision = 14, scale = 2)
     private BigDecimal commissionAmount;
+
+    @Column(name = "commission_percent", nullable = false, precision = 5, scale = 2)
+    private BigDecimal commissionPercent;
+
+    @Convert(converter = ReferralClientTypeConverter.class)
+    @Column(name = "client_type", nullable = false, length = 16)
+    private ReferralClientType clientType;
 }

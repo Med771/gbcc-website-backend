@@ -22,4 +22,6 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, J
 
     @EntityGraph(attributePaths = "referredBy")
     Page<AccountEntity> findByReferredByIsNotNullOrderByCreatedAtDesc(Pageable pageable);
+
+    long countByReferredBy_Id(UUID referredById);
 }

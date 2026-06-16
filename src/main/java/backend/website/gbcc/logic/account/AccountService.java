@@ -6,6 +6,11 @@ import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.RegisterCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.UpdateCustomerAccountRequestDto;
+import backend.website.gbcc.logic.account.dto.PatchCustomerManagerRequestDto;
+import backend.website.gbcc.logic.customeranalytics.dto.CustomerAnalyticsResponseDto;
+import backend.website.gbcc.logic.customeranalytics.dto.UpdateCustomerAnalyticsRequestDto;
+import backend.website.gbcc.logic.staff.dto.StaffProfileResponseDto;
+import backend.website.gbcc.logic.staff.dto.UpdateStaffProfileRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -35,4 +40,14 @@ public interface AccountService {
     void block(UUID accountId);
 
     void unblock(UUID accountId);
+
+    StaffProfileResponseDto getStaffProfile(UUID accountId);
+
+    StaffProfileResponseDto updateStaffProfile(UUID accountId, UpdateStaffProfileRequestDto requestDto);
+
+    CustomerAnalyticsResponseDto getCustomerAnalytics(UUID accountId);
+
+    CustomerAnalyticsResponseDto updateCustomerAnalytics(UUID accountId, UpdateCustomerAnalyticsRequestDto requestDto);
+
+    AccountResponseDto patchCustomerManagerFields(UUID accountId, PatchCustomerManagerRequestDto requestDto);
 }

@@ -2,6 +2,7 @@ package backend.website.gbcc.logic.account;
 
 import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.AccountRegistrationStatus;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationEntity;
 import backend.website.gbcc.model.BaseEntity;
 import backend.website.gbcc.model.convector.AccountRegistrationStatusConverter;
 import backend.website.gbcc.model.convector.AccountRoleConverter;
@@ -64,4 +65,12 @@ public class AccountEntity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "referred_by_account_id")
     private AccountEntity referredBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "crm_organization_id")
+    private backend.website.gbcc.logic.crm.organization.CrmOrganizationEntity crmOrganization;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brought_by_manager_id")
+    private AccountEntity broughtByManager;
 }

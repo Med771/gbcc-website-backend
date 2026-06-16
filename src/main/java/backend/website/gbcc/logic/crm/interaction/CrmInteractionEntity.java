@@ -7,6 +7,8 @@ import backend.website.gbcc.logic.crm.task.CrmTaskEntity;
 import backend.website.gbcc.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -34,6 +36,10 @@ public class CrmInteractionEntity extends BaseEntity {
 
     @Column(name = "occurred_at", nullable = false)
     private Instant occurredAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "interaction_type", nullable = false, length = 32)
+    private CrmInteractionType interactionType = CrmInteractionType.CALL;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "author_account_id", nullable = false)

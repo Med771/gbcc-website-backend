@@ -14,7 +14,8 @@ public final class OrderSpecification {
     public static Specification<OrderEntity> byFilter(OrderSearchRequestDto filter) {
         return Specification.allOf(
                 customerId(filter.customerId()),
-                status(filter.status())
+                status(filter.status()),
+                crmOrganizationId(filter.crmOrganizationId())
         );
     }
 
@@ -24,5 +25,11 @@ public final class OrderSpecification {
 
     private static Specification<OrderEntity> status(OrderStatus status) {
         return (root, query, cb) -> status == null ? null : cb.equal(root.get("status"), status);
+    }
+
+    private static Specification<OrderEntity> crmOrganizationId(UUID crmOrganizationId) {
+        return (root, query, cb) -> crmOrganizationId == null
+                ? null
+                : cb.equal(root.get("crmOrganization").get("id"), crmOrganizationId);
     }
 }

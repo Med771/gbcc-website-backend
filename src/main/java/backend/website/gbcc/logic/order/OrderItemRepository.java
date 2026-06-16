@@ -14,7 +14,6 @@ public interface OrderItemRepository extends JpaRepository<OrderItemEntity, UUID
             join fetch oi.product p
             left join fetch p.productClass
             left join fetch p.productSeries
-            left join fetch p.productType
             where oi.order.id = :orderId
             order by oi.createdAt asc
             """)

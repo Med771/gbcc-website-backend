@@ -47,7 +47,6 @@ class OrderLifecycleIntegrationTest {
                 {
                   "className": "E2EClass",
                   "seriesName": "E2ESeries",
-                  "typeName": "E2EType",
                   "brand": "%s",
                   "description": "d",
                   "tagline": null,
@@ -60,7 +59,8 @@ class OrderLifecycleIntegrationTest {
                   "weightKg": 1.0,
                   "price": 99.99,
                   "discountPercent": 0,
-                  "isActive": true
+                  "isActive": true,
+                  "stockQuantity": 10
                 }
                 """.formatted(brand);
 
@@ -148,7 +148,6 @@ class OrderLifecycleIntegrationTest {
                 {
                   "className": "E2EClassC",
                   "seriesName": "E2ESeriesC",
-                  "typeName": "E2ETypeC",
                   "brand": "%s",
                   "description": "d",
                   "tagline": null,
@@ -161,7 +160,8 @@ class OrderLifecycleIntegrationTest {
                   "weightKg": 1.0,
                   "price": 10.00,
                   "discountPercent": 0,
-                  "isActive": true
+                  "isActive": true,
+                  "stockQuantity": 10
                 }
                 """.formatted(brand);
 

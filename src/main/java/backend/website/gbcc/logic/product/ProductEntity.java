@@ -2,7 +2,6 @@ package backend.website.gbcc.logic.product;
 
 import backend.website.gbcc.logic.product.productclass.ProductClassEntity;
 import backend.website.gbcc.logic.product.productseries.ProductSeriesEntity;
-import backend.website.gbcc.logic.product.producttype.ProductTypeEntity;
 import backend.website.gbcc.model.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,10 +29,6 @@ public class ProductEntity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "series_id")
     private ProductSeriesEntity productSeries;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "type_id")
-    private ProductTypeEntity productType;
 
     @Column(nullable = false)
     private String brand;
@@ -79,4 +74,7 @@ public class ProductEntity extends BaseEntity {
 
     @Column(name = "popularity_score", nullable = false)
     private Integer popularityScore = 0;
+
+    @Column(name = "stock_quantity", nullable = false)
+    private Integer stockQuantity = 0;
 }

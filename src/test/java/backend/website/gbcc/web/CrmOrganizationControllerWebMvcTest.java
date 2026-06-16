@@ -1,6 +1,7 @@
 package backend.website.gbcc.web;
 
 import backend.website.gbcc.filter.JwtAuthenticationFilter;
+import backend.website.gbcc.logic.crm.interaction.CrmInteractionService;
 import backend.website.gbcc.logic.crm.organization.CrmClientStatus;
 import backend.website.gbcc.logic.crm.organization.CrmOrganizationController;
 import backend.website.gbcc.logic.crm.organization.CrmOrganizationService;
@@ -30,6 +31,8 @@ class CrmOrganizationControllerWebMvcTest {
 
     @MockitoBean
     private CrmOrganizationService organizationService;
+    @MockitoBean
+    private CrmInteractionService interactionService;
     @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -64,6 +67,7 @@ class CrmOrganizationControllerWebMvcTest {
                 T0,
                 T0,
                 "Org",
+                null,
                 null,
                 null,
                 null,

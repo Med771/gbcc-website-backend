@@ -10,7 +10,8 @@ public record ReferralMeResponseDto(
         long purchaseCount,
         BigDecimal availableBalance,
         BigDecimal minWithdrawalAmount,
-        BigDecimal commissionPercent,
+        BigDecimal commissionPercentNewClient,
+        BigDecimal commissionPercentReturningClient,
         boolean inviteCodeApplied,
         String appliedInviteCodeDisplay
 ) {

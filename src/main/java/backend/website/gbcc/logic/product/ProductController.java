@@ -1,15 +1,19 @@
 package backend.website.gbcc.logic.product;
 
+import backend.website.gbcc.config.OpenApiConstants;
 import backend.website.gbcc.logic.product.dto.AttachProductPhotoRequestDto;
 import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
 import backend.website.gbcc.logic.product.dto.CreateProductRequestDto;
 import backend.website.gbcc.logic.product.dto.GroupedCatalogSearchResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductClassResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductResponseDto;
+import backend.website.gbcc.logic.product.dto.PatchProductStockRequestDto;
+import backend.website.gbcc.logic.product.dto.ProductStockResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
-import backend.website.gbcc.logic.product.dto.UpdateProductRequestDto;
 import backend.website.gbcc.model.dto.PageResponse;
+import backend.website.gbcc.logic.product.dto.UpdateProductRequestDto;
 import backend.website.gbcc.model.error.ApiErrorResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -55,7 +59,8 @@ public class ProductController {
 
     private final ProductService productService;
 
-    @Operation(summary = "Создать товар", description = "Создаёт товар с классом/серией/типом (по имени или существующим id), ценой, скидкой и габаритами.")
+    @Operation(summary = "Создать товар", description = "Создаёт товар с классом/серией (по имени), маркой бетона, ценой, скидкой, габаритами и остатком.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Создан",
                     content = @Content(schema = @Schema(implementation = ProductResponseDto.class))),
@@ -71,6 +76,7 @@ public class ProductController {
     }
 
     @Operation(summary = "Полное обновление товара", description = "PUT — заменяет все обязательные поля согласно DTO.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Обновлено",
                     content = @Content(schema = @Schema(implementation = ProductResponseDto.class))),
@@ -88,6 +94,7 @@ public class ProductController {
     }
 
     @Operation(summary = "Частичное обновление товара", description = "PATCH — только переданные поля.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Обновлено",
                     content = @Content(schema = @Schema(implementation = ProductResponseDto.class))),
@@ -177,10 +184,10 @@ public class ProductController {
             summary = "Поиск товаров (каталог)",
             description = """
                     Страница каталога: фильтры комбинируются по **И**.
-                    - **q** — подстрока в бренде, описании, названиях класса / серии / типа.
+                    - **q** — подстрока в бренде, описании, названиях класса / серии.
                     - **classId** — UUID категории (из GET /product/classes); альтернатива префиксу **className**.
-                    - **seriesIds** / **typeIds** — повторяющиеся параметры (`?typeIds=u1&typeIds=u2`) для чекбоксов «серия / тип»;
-                      если заданы, префиксные **seriesName** / **typeName** не используются для этой оси.
+                    - **seriesIds** — повторяющиеся параметры (`?seriesIds=u1&seriesIds=u2`) для чекбоксов серий;
+                      если заданы, префиксный **seriesName** не используется для этой оси.
                     - **minPrice** / **maxPrice**, **minHeightMm** / **maxHeightMm** — диапазоны (высота — габарит «Размеры» в UI).
                     - **isActive** — для витрины обычно `true` (в наличии / активные карточки).
                     Пагинация: `page`, `size`. Сортировка `sort`: например `sort=popularityScore,desc` (популярность),
@@ -191,18 +198,16 @@ public class ProductController {
             content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE))
     @GetMapping
     public PageResponse<ProductResponseDto> search(
-            @Parameter(description = "Текстовый запрос: бренд, описание, названия класса/серии/типа")
+            @Parameter(description = "Текстовый запрос: бренд, описание, названия класса/серии")
             @RequestParam(name = "q", required = false) String query,
-            @Parameter(description = "Префикс имени класса (категории)")
+            @Parameter(description = "Префикс имени класса (номенклатуры)")
             @RequestParam(required = false) String className,
             @Parameter(description = "Точная категория по UUID (предпочтительно для боковой колонки)")
             @RequestParam(required = false) UUID classId,
             @Parameter(description = "Фильтр по сериям: повторять параметр для нескольких UUID")
             @RequestParam(required = false) List<UUID> seriesIds,
-            @Parameter(description = "Фильтр по типам товара (чекбоксы размеров/модификаций)")
-            @RequestParam(required = false) List<UUID> typeIds,
             @RequestParam(required = false) String seriesName,
-            @RequestParam(required = false) String typeName,
+            @Parameter(description = "Марка бетона (префикс)")
             @RequestParam(required = false) String brand,
             @RequestParam(required = false)
             @DecimalMin(value = "0.0", message = "minPrice must be greater or equal to 0")
@@ -222,9 +227,7 @@ public class ProductController {
                 className,
                 classId,
                 emptyToNull(seriesIds),
-                emptyToNull(typeIds),
                 seriesName,
-                typeName,
                 brand,
                 minPrice,
                 maxPrice,
@@ -234,6 +237,40 @@ public class ProductController {
         );
         Page<ProductResponseDto> result = productService.search(requestDto, pageable);
         return PageResponse.fromPage(result);
+    }
+
+    @Operation(summary = "Склад: список остатков", description = "JWT. Только ADMIN/OWNER. Пагинация и фильтры как в каталоге.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @GetMapping("/stock")
+    public PageResponse<ProductStockResponseDto> searchStock(
+            @RequestParam(name = "q", required = false) String query,
+            @RequestParam(required = false) String className,
+            @RequestParam(required = false) UUID classId,
+            @RequestParam(required = false) List<UUID> seriesIds,
+            @RequestParam(required = false) String seriesName,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) @DecimalMin(value = "0.0") BigDecimal minPrice,
+            @RequestParam(required = false) @DecimalMin(value = "0.0") BigDecimal maxPrice,
+            @RequestParam(required = false) Integer minHeightMm,
+            @RequestParam(required = false) Integer maxHeightMm,
+            @RequestParam(required = false) Boolean isActive,
+            @Parameter(hidden = true) Pageable pageable
+    ) {
+        ProductSearchRequestDto requestDto = new ProductSearchRequestDto(
+                query, className, classId, emptyToNull(seriesIds), seriesName, brand,
+                minPrice, maxPrice, minHeightMm, maxHeightMm, isActive
+        );
+        return PageResponse.fromPage(productService.searchStock(requestDto, pageable));
+    }
+
+    @Operation(summary = "Склад: корректировка остатка", description = "JWT. Только ADMIN/OWNER.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @PatchMapping("/{productId}/stock")
+    public ProductStockResponseDto patchStock(
+            @PathVariable UUID productId,
+            @Valid @RequestBody PatchProductStockRequestDto requestDto
+    ) {
+        return productService.patchStock(productId, requestDto);
     }
 
     private static List<UUID> emptyToNull(List<UUID> ids) {

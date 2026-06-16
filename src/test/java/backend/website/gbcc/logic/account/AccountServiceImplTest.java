@@ -2,6 +2,7 @@ package backend.website.gbcc.logic.account;
 
 import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.logic.referral.ReferralService;
+import backend.website.gbcc.logic.staff.StaffProfileService;
 import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
@@ -53,6 +54,9 @@ class AccountServiceImplTest {
     @Mock
     private ReferralService referralService;
 
+    @Mock
+    private StaffProfileService staffProfileService;
+
     @InjectMocks
     private AccountServiceImpl accountService;
 
@@ -68,7 +72,11 @@ class AccountServiceImplTest {
         CreateAdminAccountRequestDto request = new CreateAdminAccountRequestDto(
                 "Admin",
                 "Test@Mail.COM",
-                "Password123"
+                "Password123",
+                null,
+                null,
+                null,
+                null
         );
 
         AccountEntity mappedEntity = new AccountEntity();
@@ -92,6 +100,8 @@ class AccountServiceImplTest {
                 AccountRole.ADMIN,
                 AccountRegistrationStatus.ACTIVE,
                 false,
+                null,
+                null,
                 Instant.now(),
                 Instant.now()
         );
@@ -127,7 +137,11 @@ class AccountServiceImplTest {
         CreateAdminAccountRequestDto request = new CreateAdminAccountRequestDto(
                 "Admin",
                 "Test@Mail.COM",
-                "Password123"
+                "Password123",
+                null,
+                null,
+                null,
+                null
         );
 
         assertThatThrownBy(() -> accountService.createAdmin(request))
@@ -342,7 +356,11 @@ class AccountServiceImplTest {
         CreateAdminAccountRequestDto request = new CreateAdminAccountRequestDto(
                 "Admin",
                 "dup@mail.com",
-                "Password123"
+                "Password123",
+                null,
+                null,
+                null,
+                null
         );
 
         AccountEntity mappedEntity = new AccountEntity();
@@ -394,6 +412,8 @@ class AccountServiceImplTest {
                 savedEntity.getRole(),
                 savedEntity.getRegistrationStatus(),
                 false,
+                null,
+                null,
                 Instant.now(),
                 Instant.now()
         );
@@ -433,6 +453,8 @@ class AccountServiceImplTest {
                 AccountRole.CUSTOMER,
                 AccountRegistrationStatus.ACTIVE,
                 false,
+                null,
+                null,
                 Instant.now(),
                 Instant.now()
         );

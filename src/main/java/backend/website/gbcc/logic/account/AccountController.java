@@ -7,6 +7,11 @@ import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.RegisterCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.UpdateCustomerAccountRequestDto;
+import backend.website.gbcc.logic.account.dto.PatchCustomerManagerRequestDto;
+import backend.website.gbcc.logic.customeranalytics.dto.CustomerAnalyticsResponseDto;
+import backend.website.gbcc.logic.customeranalytics.dto.UpdateCustomerAnalyticsRequestDto;
+import backend.website.gbcc.logic.staff.dto.StaffProfileResponseDto;
+import backend.website.gbcc.logic.staff.dto.UpdateStaffProfileRequestDto;
 import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.dto.PageResponse;
 import backend.website.gbcc.model.error.ApiErrorResponse;
@@ -137,6 +142,33 @@ public class AccountController {
         return accountService.updateCustomer(accountId, requestDto);
     }
 
+    @Operation(summary = "CRM-поля покупателя", description = "JWT. ADMIN/OWNER. Привязка к организации CRM и менеджеру-привлечёнцу.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @PatchMapping("/customer/{accountId}")
+    public AccountResponseDto patchCustomerManagerFields(
+            @PathVariable UUID accountId,
+            @Valid @RequestBody PatchCustomerManagerRequestDto requestDto
+    ) {
+        return accountService.patchCustomerManagerFields(accountId, requestDto);
+    }
+
+    @Operation(summary = "Аналитика покупателя", description = "JWT. Ручные и вычисляемые показатели карточки клиента.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @GetMapping("/customer/{accountId}/analytics")
+    public CustomerAnalyticsResponseDto getCustomerAnalytics(@PathVariable UUID accountId) {
+        return accountService.getCustomerAnalytics(accountId);
+    }
+
+    @Operation(summary = "Обновить ручную аналитику покупателя", description = "JWT. ADMIN/OWNER.")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @PutMapping("/customer/{accountId}/analytics")
+    public CustomerAnalyticsResponseDto updateCustomerAnalytics(
+            @PathVariable UUID accountId,
+            @Valid @RequestBody UpdateCustomerAnalyticsRequestDto requestDto
+    ) {
+        return accountService.updateCustomerAnalytics(accountId, requestDto);
+    }
+
     @Operation(summary = "Активация клиента (установка пароля)", description = "JWT. Завершает регистрацию, если применимо.")
     @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
     @ApiResponses({
@@ -191,6 +223,23 @@ public class AccountController {
     @GetMapping("/{accountId}")
     public AccountResponseDto getById(@PathVariable UUID accountId) {
         return accountService.getById(accountId);
+    }
+
+    @Operation(summary = "Карточка сотрудника")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @GetMapping("/{accountId}/staff-profile")
+    public StaffProfileResponseDto getStaffProfile(@PathVariable UUID accountId) {
+        return accountService.getStaffProfile(accountId);
+    }
+
+    @Operation(summary = "Обновить карточку сотрудника")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @PutMapping("/{accountId}/staff-profile")
+    public StaffProfileResponseDto updateStaffProfile(
+            @PathVariable UUID accountId,
+            @Valid @RequestBody UpdateStaffProfileRequestDto requestDto
+    ) {
+        return accountService.updateStaffProfile(accountId, requestDto);
     }
 
     @Operation(

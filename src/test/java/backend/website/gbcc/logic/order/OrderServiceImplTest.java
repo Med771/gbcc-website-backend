@@ -11,6 +11,9 @@ import backend.website.gbcc.logic.order.dto.UpdateOrderStatusRequestDto;
 import backend.website.gbcc.logic.product.ProductEntity;
 import backend.website.gbcc.logic.product.ProductRepository;
 import backend.website.gbcc.logic.promotion.PromotionDiscountResolver;
+import backend.website.gbcc.logic.crm.access.CrmAccessPolicy;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationRepository;
+import backend.website.gbcc.logic.managercommission.ManagerCommissionService;
 import backend.website.gbcc.logic.referral.ReferralService;
 import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.OrderPaymentMethod;
@@ -71,6 +74,12 @@ class OrderServiceImplTest {
     private PromotionDiscountResolver promotionDiscountResolver;
     @Mock
     private ReferralService referralService;
+    @Mock
+    private ManagerCommissionService managerCommissionService;
+    @Mock
+    private CrmOrganizationRepository crmOrganizationRepository;
+    @Mock
+    private CrmAccessPolicy crmAccessPolicy;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -358,6 +367,14 @@ class OrderServiceImplTest {
                 null,
                 BigDecimal.ZERO,
                 BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                BigDecimal.ZERO,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 Collections.emptyList(),
                 Collections.emptyList(),
                 null,
@@ -401,7 +418,7 @@ class OrderServiceImplTest {
         when(orderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<OrderEntity>>any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        orderService.search(new OrderSearchRequestDto(filterCustomerId, OrderStatus.PROCESSING), PageRequest.of(0, 20));
+        orderService.search(new OrderSearchRequestDto(filterCustomerId, OrderStatus.PROCESSING, null), PageRequest.of(0, 20));
 
         verify(orderRepository, times(1)).findAll(
                 org.mockito.ArgumentMatchers.<Specification<OrderEntity>>any(),
@@ -425,6 +442,7 @@ class OrderServiceImplTest {
         product.setPrice(new BigDecimal("100.00"));
         product.setDiscountPercent(new BigDecimal("10.00"));
         product.setIsActive(true);
+        product.setStockQuantity(10);
 
         OrderEntity persistedOrder = new OrderEntity();
         persistedOrder.setId(orderId);
@@ -437,7 +455,7 @@ class OrderServiceImplTest {
         when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(customerId);
         when(accountRepository.findById(customerId)).thenReturn(Optional.of(customer));
         when(orderRepository.nextDisplayNumber()).thenReturn(999_999L);
-        when(productRepository.findAllWithTaxonomyByIds(any())).thenReturn(List.of(product));
+        when(productRepository.findAllWithTaxonomyByIdsForUpdate(any())).thenReturn(List.of(product));
         when(promotionDiscountResolver.resolveEffectiveDiscountPercent(any(), any(), any()))
                 .thenAnswer(inv -> inv.getArgument(1));
         when(orderRepository.save(any(OrderEntity.class))).thenReturn(persistedOrder);
@@ -459,6 +477,14 @@ class OrderServiceImplTest {
                 null,
                 new BigDecimal("200.00"),
                 new BigDecimal("180.00"),
+                BigDecimal.ZERO,
+                new BigDecimal("180.00"),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 Collections.emptyList(),
                 Collections.emptyList(),
                 null,
@@ -469,7 +495,9 @@ class OrderServiceImplTest {
                 "Street 1",
                 null,
                 OrderPaymentMethod.CARD_OR_ON_RECEIPT,
-                List.of(new CreateOrderItemRequestDto(productId, 2))
+                List.of(new CreateOrderItemRequestDto(productId, 2)),
+                null,
+                null
         );
 
         OrderResponseDto response = orderService.create(request);
@@ -494,17 +522,19 @@ class OrderServiceImplTest {
         product.setPrice(new BigDecimal("10.00"));
         product.setDiscountPercent(BigDecimal.ZERO);
         product.setIsActive(false);
+        product.setStockQuantity(10);
 
         when(securityContextHelper.getCurrentAccountIdOrThrow()).thenReturn(customerId);
         when(accountRepository.findById(customerId)).thenReturn(Optional.of(customer));
-        when(orderRepository.nextDisplayNumber()).thenReturn(1L);
-        when(productRepository.findAllWithTaxonomyByIds(any())).thenReturn(List.of(product));
+        when(productRepository.findAllWithTaxonomyByIdsForUpdate(any())).thenReturn(List.of(product));
 
         CreateOrderRequestDto request = new CreateOrderRequestDto(
                 "Addr",
                 null,
                 OrderPaymentMethod.CARD_OR_ON_RECEIPT,
-                List.of(new CreateOrderItemRequestDto(productId, 1))
+                List.of(new CreateOrderItemRequestDto(productId, 1)),
+                null,
+                null
         );
 
         assertThatThrownBy(() -> orderService.create(request))
@@ -596,7 +626,7 @@ class OrderServiceImplTest {
         when(orderRepository.findAll(org.mockito.ArgumentMatchers.<Specification<OrderEntity>>any(), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(Collections.emptyList()));
 
-        orderService.search(new OrderSearchRequestDto(UUID.randomUUID(), OrderStatus.CREATED), PageRequest.of(0, 20));
+        orderService.search(new OrderSearchRequestDto(UUID.randomUUID(), OrderStatus.CREATED, null), PageRequest.of(0, 20));
 
         verify(orderRepository).findAll(org.mockito.ArgumentMatchers.<Specification<OrderEntity>>any(), any(Pageable.class));
     }
@@ -628,6 +658,14 @@ class OrderServiceImplTest {
                     o.getEstimatedDeliveryEnd(),
                     BigDecimal.ZERO,
                     BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    BigDecimal.ZERO,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
                     Collections.emptyList(),
                     Collections.emptyList(),
                     null,

@@ -1,14 +1,20 @@
 package backend.website.gbcc.logic.crm.organization;
 
 import backend.website.gbcc.config.OpenApiConstants;
+import backend.website.gbcc.logic.crm.organization.dto.CreateCrmOrganizationBranchRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.CreateCrmOrganizationContactRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.CreateCrmOrganizationRequestDto;
+import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationBranchResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationContactHistoryResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationContactResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmReassignOrganizationRequestDto;
+import backend.website.gbcc.logic.crm.organization.dto.UpdateCrmOrganizationBranchRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.UpdateCrmOrganizationContactRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.UpdateCrmOrganizationRequestDto;
+import backend.website.gbcc.logic.crm.interaction.CrmInteractionService;
+import backend.website.gbcc.logic.crm.interaction.CrmInteractionType;
+import backend.website.gbcc.logic.crm.interaction.dto.CrmInteractionResponseDto;
 import backend.website.gbcc.model.dto.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -42,6 +48,7 @@ import java.util.UUID;
 public class CrmOrganizationController {
 
     private final CrmOrganizationService organizationService;
+    private final CrmInteractionService interactionService;
 
     @Operation(summary = "Создать организацию")
     @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
@@ -127,5 +134,53 @@ public class CrmOrganizationController {
             @PathVariable UUID contactId
     ) {
         return organizationService.listContactHistory(organizationId, contactId);
+    }
+
+    @Operation(summary = "Список филиалов организации")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @GetMapping("/{organizationId}/branches")
+    public List<CrmOrganizationBranchResponseDto> listBranches(@PathVariable UUID organizationId) {
+        return organizationService.listBranches(organizationId);
+    }
+
+    @Operation(summary = "Добавить филиал")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @PostMapping("/{organizationId}/branches")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CrmOrganizationBranchResponseDto createBranch(
+            @PathVariable UUID organizationId,
+            @Valid @RequestBody CreateCrmOrganizationBranchRequestDto dto
+    ) {
+        return organizationService.createBranch(organizationId, dto);
+    }
+
+    @Operation(summary = "Обновить филиал")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @PutMapping("/{organizationId}/branches/{branchId}")
+    public CrmOrganizationBranchResponseDto updateBranch(
+            @PathVariable UUID organizationId,
+            @PathVariable UUID branchId,
+            @Valid @RequestBody UpdateCrmOrganizationBranchRequestDto dto
+    ) {
+        return organizationService.updateBranch(organizationId, branchId, dto);
+    }
+
+    @Operation(summary = "Удалить филиал")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @DeleteMapping("/{organizationId}/branches/{branchId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteBranch(@PathVariable UUID organizationId, @PathVariable UUID branchId) {
+        organizationService.deleteBranch(organizationId, branchId);
+    }
+
+    @Operation(summary = "Взаимодействия организации (фильтр по типу, напр. CALL)")
+    @SecurityRequirement(name = OpenApiConstants.SECURITY_ACCESS_COOKIE)
+    @GetMapping("/{organizationId}/interactions")
+    public PageResponse<CrmInteractionResponseDto> listInteractions(
+            @PathVariable UUID organizationId,
+            @RequestParam(required = false) CrmInteractionType interactionType,
+            @Parameter(hidden = true) Pageable pageable
+    ) {
+        return interactionService.search(organizationId, null, null, null, null, null, interactionType, pageable);
     }
 }

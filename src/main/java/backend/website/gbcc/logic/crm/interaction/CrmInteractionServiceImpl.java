@@ -50,6 +50,7 @@ public class CrmInteractionServiceImpl implements CrmInteractionService {
         e.setOrganization(t.organization());
         e.setLead(t.lead());
         e.setOccurredAt(dto.occurredAt());
+        e.setInteractionType(dto.interactionType() != null ? dto.interactionType() : CrmInteractionType.CALL);
         e.setAuthor(accountRepository.findById(principal.accountId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found")));
         e.setResultNote(trim(dto.resultNote()));
@@ -71,6 +72,7 @@ public class CrmInteractionServiceImpl implements CrmInteractionService {
         e.setOrganization(t.organization());
         e.setLead(t.lead());
         e.setOccurredAt(dto.occurredAt());
+        e.setInteractionType(dto.interactionType() != null ? dto.interactionType() : CrmInteractionType.CALL);
         e.setResultNote(trim(dto.resultNote()));
         e.setCommentText(trim(dto.commentText()));
         e.setNextStep(trim(dto.nextStep()));
@@ -100,7 +102,8 @@ public class CrmInteractionServiceImpl implements CrmInteractionService {
     @Transactional(readOnly = true)
     public PageResponse<CrmInteractionResponseDto> search(UUID organizationId, UUID leadId, UUID authorId,
                                                             java.time.Instant occurredFrom, java.time.Instant occurredTo,
-                                                            String resultFragment, Pageable pageable) {
+                                                            String resultFragment, CrmInteractionType interactionType,
+                                                            Pageable pageable) {
         AccountPrincipal principal = crmAccessPolicy.requireCrmUser();
         Specification<CrmInteractionEntity> spec = Specification.allOf(
                 CrmInteractionVisibility.visibleFor(principal),
@@ -108,7 +111,8 @@ public class CrmInteractionServiceImpl implements CrmInteractionService {
                 CrmInteractionSpecification.leadIdEq(leadId),
                 CrmInteractionSpecification.authorIdEq(authorId),
                 CrmInteractionSpecification.occurredBetween(occurredFrom, occurredTo),
-                CrmInteractionSpecification.resultContains(resultFragment)
+                CrmInteractionSpecification.resultContains(resultFragment),
+                CrmInteractionSpecification.interactionTypeEq(interactionType)
         );
         Page<CrmInteractionResponseDto> page = interactionRepository.findAll(spec, pageable).map(this::toResponse);
         return PageResponse.fromPage(page);
@@ -170,6 +174,7 @@ public class CrmInteractionServiceImpl implements CrmInteractionService {
                 e.getOrganization() != null ? e.getOrganization().getId() : null,
                 e.getLead() != null ? e.getLead().getId() : null,
                 e.getOccurredAt(),
+                e.getInteractionType(),
                 author.getId(),
                 displayName(author),
                 e.getResultNote(),

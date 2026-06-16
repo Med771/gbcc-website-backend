@@ -1,6 +1,7 @@
 package backend.website.gbcc.logic.order;
 
 import backend.website.gbcc.logic.account.AccountEntity;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationEntity;
 import backend.website.gbcc.model.BaseEntity;
 import backend.website.gbcc.model.OrderPaymentMethod;
 import backend.website.gbcc.model.OrderStatus;
@@ -62,4 +63,23 @@ public class OrderEntity extends BaseEntity {
 
     @Column(name = "total_discounted_price", nullable = false, precision = 14, scale = 2)
     private BigDecimal totalDiscountedPrice;
+
+    @Column(name = "contact_name")
+    private String contactName;
+
+    @Column(name = "contact_phone", length = 64)
+    private String contactPhone;
+
+    @Column(name = "contact_email")
+    private String contactEmail;
+
+    @Column(name = "manager_notes", columnDefinition = "text")
+    private String managerNotes;
+
+    @Column(name = "delivery_fee", nullable = false, precision = 14, scale = 2)
+    private BigDecimal deliveryFee = BigDecimal.ZERO;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "crm_organization_id")
+    private CrmOrganizationEntity crmOrganization;
 }

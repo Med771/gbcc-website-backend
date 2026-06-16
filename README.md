@@ -50,6 +50,9 @@ OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-d
 - **Контракты и график:** `/crm/contracts`, строки `.../contracts/{id}/lines`.
 - **Карта:** `GET /crm/map/pins`, объекты компании `.../map/company-objects`.
 - **Метрики:** `GET /crm/metrics/summary` (агрегаты в рамках скоупа: OWNER — всё, ADMIN — только назначенные на него сущности / свои задачи).
+- **Комиссии менеджеров:** `GET /crm/manager-commissions` (JWT ADMIN/OWNER; опциональный фильтр `managerId`).
+- **Филиалы организаций:** CRUD под `/crm/organizations/{id}/branches`.
+- **Календарь поставок:** `GET /crm/supplies/calendar` (поля `plannedDate`, `plannedEndDate` на поставке).
 - **Веб-аналитика (first-party):** `GET /crm/analytics/summary`, `GET /crm/analytics/events` — сводка и лента по событиям с сайта (JWT ADMIN/OWNER; глобальные агрегаты, без привязки к сущностям CRM).
 
 Менеджер в ТЗ соответствует роли **ADMIN**; руководитель — **OWNER**. Координаты и статусы вводятся вручную, внешние интеграции не используются.
@@ -82,12 +85,12 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 | Тег | Назначение |
 |-----|------------|
 | **Auth** | `/auth/login`, `/auth/refresh`, `/auth/logout` — выдача JWT в HttpOnly cookies |
-| **Accounts** | Регистрация клиента, CRUD по аккаунтам, поиск, блокировка |
-| **Products** | Каталог: CRUD, поиск с фильтрами, **сгруппированный поиск** (`/product/search/grouped`) для мобильного меню, классы, фото товара |
+| **Accounts** | Регистрация, CRUD, **аналитика клиента** (`GET/PUT /account/customer/{id}/analytics`), **staff-profile**, CRM-привязки (`PATCH /account/customer/{id}`), блокировка |
+| **Products** | Каталог: CRUD, поиск с фильтрами, **сгруппированный поиск** (`/product/search/grouped`), классы, фото товара, **остатки** (`GET /product/stock`, `PATCH /product/{id}/stock`) |
 | **Files** | Загрузка multipart, поиск метаданных, скачивание/удаление по UUID |
 | **News** | Новости; чтение публично; создание/редактирование — ADMIN/OWNER |
 | **Promotions** | Акции (скидки по правилам); список публично; изменение — ADMIN/OWNER |
-| **Orders** | Заказы: история (**GET /order**), карточка с номером, оплатой, окном доставки, чеком; CUSTOMER создаёт; менеджеры меняют статус |
+| **Orders** | Заказы: история (**GET /order**), карточка, **PATCH /order/{id}** (менеджер), смена статуса; резерв/восстановление остатков; фильтр `crmOrganizationId` |
 | **Support** | Обращения в администрацию; гости с токеном `X-Support-Token` |
 | **Contact requests** | Заявки с формы на сайте: публичная отправка; список и «взять на изучение» — ADMIN/OWNER |
 | **CRM — Organizations** … **CRM — Metrics** | Модуль CRM под префиксом `/crm/**` (см. раздел **CRM API** выше) |
@@ -152,8 +155,27 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 ### Каталог и заказы
 
 - Каталог: чтение и поиск товаров — по правилам `SecurityConfig` (часто без JWT). **Создание и изменение товаров и фото** (`POST`/`PUT`/`PATCH`/`DELETE` под `/product/**`) — только с JWT ролей **ADMIN** или **OWNER** (проверка и в Security, и в `ProductServiceImpl`).
-- **POST `/order`** — только авторизованный **CUSTOMER** с JWT cookie; в теле — **paymentMethod** (`CARD_ONLINE` или `CARD_OR_ON_RECEIPT` и т.д., см. Swagger).
-- **GET `/order`** — история заказов текущего клиента (пагинация); в каждой записи: **displayNumber** (короткий номер), **statusLabel**, **paymentMethodLabel**, суммы, **estimatedDeliveryAt** / **estimatedDeliveryEnd**, **receiptUrl**, позиции с названиями класса/серии/типа товара.
+- В карточке товара (`ProductResponseDto`): поля **originalPrice**, **finalPrice**, **priceLabel**, **priceLabelHint** (маркетплейс-ценообразование), **stockQuantity**. При создании/изменении можно задать `stockQuantity` (по умолчанию 0).
+- **GET `/product/stock`** — сводка остатков (ADMIN/OWNER). **PATCH `/product/{id}/stock`** — изменение остатка.
+- **POST `/order`** — только авторизованный **CUSTOMER** с JWT cookie; в теле — **paymentMethod**, опционально **deliveryFee**, **crmOrganizationId**; при создании **резервируется** `stockQuantity`. Отмена до `DELIVERED` **восстанавливает** остаток.
+- **GET `/order`** — история заказов (пагинация); для ADMIN/OWNER — фильтр **`crmOrganizationId`**. В записи: контакты, **deliveryFee**, **netTotal**, **crmOrganizationId**, **displayNumber**, статусы, суммы, окно доставки, чек, позиции.
+- **PATCH `/order/{orderId}`** — правка менеджером (контакты, адрес, комментарий, `deliveryFee`, `crmOrganizationId`) до финальных статусов.
+
+### Breaking changes (миграции V030–V040)
+
+| Изменение | Действие для клиентов API |
+|-----------|---------------------------|
+| Удалена таксономия **product_type** | Убрать `typeName` / `typeIds` из запросов и UI; уникальность товара — по классу + серии + бренду. Scope акций **`PRODUCT_TYPE`** мигрирован в **`PRODUCT`**. |
+| Поле **stockQuantity** | Заказ с `quantity` > остатка → **400**. Новые товары без `stockQuantity` получают 0. |
+| Расширение заказа | Новые поля в ответе/запросе: контакты, `deliveryFee`, `netTotal`, `crmOrganizationId`. |
+| Аккаунт ↔ CRM | `crmOrganizationId`, `broughtByManagerId` на клиенте; **PATCH `/account/customer/{id}`** для привязки. |
+| Реферальная комиссия | **7%** за первый доставленный заказ приглашённого, **2%** за последующие (`app.referral.commission-percent-*`). В `referral_commission` — `commission_percent`, `client_type`. |
+| Комиссия менеджера-привлечёнца | Таблица `manager_referral_commission`; **GET `/crm/manager-commissions`**. |
+| CRM организации | Поле **inn**; CRUD **филиалов** `/crm/organizations/{id}/branches`. |
+| CRM контакты | **positionTitle**, **socialLinks** (JSON). |
+| CRM поставки | **plannedDate**, **plannedEndDate**; **GET `/crm/supplies/calendar`**. |
+| Staff | **GET/PUT `/account/{id}/staff-profile`**. |
+| CRM взаимодействия | Поле **interactionType**; фильтр `interactionType` в **GET `/crm/interactions`**. |
 
 ### Поиск в мобильном меню (блоки «Категория» / «Оборудование»)
 
@@ -164,7 +186,7 @@ java -jar target/gbcc-website-backend-0.0.1-SNAPSHOT.jar
 
 - **GET `/product/classes`** — список категорий с `id` и `name` для сайдбара и хлебных крошек.
 - **GET `/product`** — общее число позиций в **`PageResponse.totalElements`** (число в скобках у заголовка).
-- Фильтры: **`classId`** (категория), **`minPrice`** / **`maxPrice`**, **`seriesIds`** / **`typeIds`** (повторять query-параметр для нескольких UUID — чекбоксы серий/типов), **`minHeightMm`** / **`maxHeightMm`** (диапазон высоты в мм), **`q`**, **`isActive=true`** для витрины.
+- Фильтры: **`classId`** (категория), **`minPrice`** / **`maxPrice`**, **`seriesIds`** (повторять query-параметр для нескольких UUID), **`minHeightMm`** / **`maxHeightMm`** (диапазон высоты в мм), **`q`**, **`isActive=true`** для витрины.
 - Сортировка через **`sort`**: например `popularityScore,desc` (поле **popularity_score**; по умолчанию 0, при необходимости обновляйте на бэкенде), `price,asc|desc`, `createdAt,desc` (новизна), `isActive,desc` (активные выше).
 
 ---

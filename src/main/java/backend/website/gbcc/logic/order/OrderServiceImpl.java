@@ -3,15 +3,20 @@ package backend.website.gbcc.logic.order;
 import backend.website.gbcc.helper.SecurityContextHelper;
 import backend.website.gbcc.logic.account.AccountEntity;
 import backend.website.gbcc.logic.account.AccountRepository;
+import backend.website.gbcc.logic.crm.access.CrmAccessPolicy;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationEntity;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationRepository;
+import backend.website.gbcc.logic.managercommission.ManagerCommissionService;
 import backend.website.gbcc.logic.order.dto.CreateOrderItemRequestDto;
 import backend.website.gbcc.logic.order.dto.CreateOrderRequestDto;
 import backend.website.gbcc.logic.order.dto.OrderResponseDto;
 import backend.website.gbcc.logic.order.dto.OrderSearchRequestDto;
+import backend.website.gbcc.logic.order.dto.PatchOrderManagerRequestDto;
 import backend.website.gbcc.logic.order.dto.UpdateOrderStatusRequestDto;
-import backend.website.gbcc.logic.referral.ReferralService;
 import backend.website.gbcc.logic.product.ProductEntity;
 import backend.website.gbcc.logic.product.ProductRepository;
 import backend.website.gbcc.logic.promotion.PromotionDiscountResolver;
+import backend.website.gbcc.logic.referral.ReferralService;
 import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.OrderStatus;
 import lombok.RequiredArgsConstructor;
@@ -44,10 +49,13 @@ public class OrderServiceImpl implements OrderService {
     private final OrderStatusHistoryRepository orderStatusHistoryRepository;
     private final ProductRepository productRepository;
     private final AccountRepository accountRepository;
+    private final CrmOrganizationRepository crmOrganizationRepository;
     private final SecurityContextHelper securityContextHelper;
     private final OrderMapper orderMapper;
     private final PromotionDiscountResolver promotionDiscountResolver;
     private final ReferralService referralService;
+    private final ManagerCommissionService managerCommissionService;
+    private final CrmAccessPolicy crmAccessPolicy;
 
     @Override
     @Transactional
@@ -60,13 +68,24 @@ public class OrderServiceImpl implements OrderService {
         String customerComment = normalizeOptional(requestDto.customerComment());
 
         Map<UUID, Integer> quantityByProductId = aggregateAndValidateItems(requestDto.items());
-        List<ProductEntity> products = productRepository.findAllWithTaxonomyByIds(quantityByProductId.keySet());
+        List<ProductEntity> products = productRepository.findAllWithTaxonomyByIdsForUpdate(quantityByProductId.keySet());
         if (products.size() != quantityByProductId.size()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Some products not found");
         }
 
         Map<UUID, ProductEntity> productById = products.stream()
                 .collect(Collectors.toMap(ProductEntity::getId, p -> p));
+
+        for (Map.Entry<UUID, Integer> entry : quantityByProductId.entrySet()) {
+            ProductEntity product = productById.get(entry.getKey());
+            if (!Boolean.TRUE.equals(product.getIsActive())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product is inactive: " + product.getId());
+            }
+            int quantity = entry.getValue();
+            if (product.getStockQuantity() < quantity) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient stock for product: " + product.getId());
+            }
+        }
 
         OrderEntity order = new OrderEntity();
         order.setDisplayNumber(orderRepository.nextDisplayNumber());
@@ -77,6 +96,19 @@ public class OrderServiceImpl implements OrderService {
         order.setCustomerComment(customerComment);
         order.setEstimatedDeliveryAt(null);
         order.setEstimatedDeliveryEnd(null);
+        order.setDeliveryFee(requestDto.deliveryFee() != null
+                ? requestDto.deliveryFee().setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO);
+
+        if (requestDto.crmOrganizationId() != null) {
+            CrmOrganizationEntity org = crmOrganizationRepository.findById(requestDto.crmOrganizationId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "CRM organization not found"));
+            order.setCrmOrganization(org);
+            if (requester.getCrmOrganization() == null) {
+                requester.setCrmOrganization(org);
+                accountRepository.save(requester);
+            }
+        }
 
         BigDecimal totalPrice = BigDecimal.ZERO;
         BigDecimal totalDiscountedPrice = BigDecimal.ZERO;
@@ -87,11 +119,10 @@ public class OrderServiceImpl implements OrderService {
         Instant pricingAt = Instant.now();
         for (Map.Entry<UUID, Integer> entry : quantityByProductId.entrySet()) {
             ProductEntity product = productById.get(entry.getKey());
-            if (!Boolean.TRUE.equals(product.getIsActive())) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product is inactive: " + product.getId());
-            }
-
             int quantity = entry.getValue();
+            product.setStockQuantity(product.getStockQuantity() - quantity);
+            productRepository.save(product);
+
             BigDecimal unitPrice = product.getPrice();
             BigDecimal unitDiscountPercent = promotionDiscountResolver.resolveEffectiveDiscountPercent(
                     product,
@@ -142,11 +173,11 @@ public class OrderServiceImpl implements OrderService {
         AccountEntity requester = getCurrentAccountOrThrow();
         OrderSearchRequestDto safeRequest = requestDto != null
                 ? requestDto
-                : new OrderSearchRequestDto(null, null);
+                : new OrderSearchRequestDto(null, null, null);
 
         OrderSearchRequestDto effectiveRequest = safeRequest;
         if (requester.getRole() == AccountRole.CUSTOMER) {
-            effectiveRequest = new OrderSearchRequestDto(requester.getId(), safeRequest.status());
+            effectiveRequest = new OrderSearchRequestDto(requester.getId(), safeRequest.status(), null);
         }
 
         return orderRepository.findAll(OrderSpecification.byFilter(effectiveRequest), pageable)
@@ -187,14 +218,69 @@ public class OrderServiceImpl implements OrderService {
             order.setReceiptUrl(normalizeOptional(requestDto.receiptUrl()));
         }
 
+        if (toStatus == OrderStatus.CANCELLED && fromStatus != OrderStatus.DELIVERED) {
+            restoreStockForOrder(orderId);
+        }
+
         order.setStatus(toStatus);
         orderRepository.save(order);
 
         addHistory(order, fromStatus, toStatus, requester, comment, order.getEstimatedDeliveryAt());
         if (toStatus == OrderStatus.DELIVERED) {
             referralService.onOrderDelivered(orderId);
+            managerCommissionService.onOrderDelivered(orderId);
         }
         return buildResponse(orderId);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponseDto patchByManager(UUID orderId, PatchOrderManagerRequestDto requestDto) {
+        AccountEntity requester = getCurrentAccountOrThrow();
+        ensureManagerRole(requester);
+
+        OrderEntity order = findOrderOrThrow(orderId);
+        if (requestDto.contactName() != null) {
+            order.setContactName(normalizeOptional(requestDto.contactName()));
+        }
+        if (requestDto.contactPhone() != null) {
+            order.setContactPhone(normalizeOptional(requestDto.contactPhone()));
+        }
+        if (requestDto.contactEmail() != null) {
+            order.setContactEmail(normalizeOptional(requestDto.contactEmail()));
+        }
+        if (requestDto.managerNotes() != null) {
+            order.setManagerNotes(normalizeOptional(requestDto.managerNotes()));
+        }
+        if (requestDto.deliveryFee() != null) {
+            if (requestDto.deliveryFee().compareTo(BigDecimal.ZERO) < 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "deliveryFee must be greater or equal to 0");
+            }
+            order.setDeliveryFee(requestDto.deliveryFee().setScale(2, RoundingMode.HALF_UP));
+        }
+        if (requestDto.crmOrganizationId() != null) {
+            CrmOrganizationEntity org = crmOrganizationRepository.findById(requestDto.crmOrganizationId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "CRM organization not found"));
+            if (requester.getRole() == AccountRole.ADMIN) {
+                crmAccessPolicy.assertCanModifyOrganization(
+                        org.getAssignedTo() != null ? org.getAssignedTo().getId() : null
+                );
+            }
+            order.setCrmOrganization(org);
+        }
+
+        orderRepository.save(order);
+        return buildResponse(orderId);
+    }
+
+    private void restoreStockForOrder(UUID orderId) {
+        List<OrderItemEntity> items = orderItemRepository.findAllByOrderId(orderId);
+        for (OrderItemEntity item : items) {
+            ProductEntity product = productRepository.findById(item.getProduct().getId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Product not found for stock restore"));
+            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+            productRepository.save(product);
+        }
     }
 
     private void validateReadAccess(AccountEntity requester, OrderEntity order) {

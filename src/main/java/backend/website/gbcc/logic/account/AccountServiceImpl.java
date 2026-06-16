@@ -1,13 +1,22 @@
 package backend.website.gbcc.logic.account;
 
 import backend.website.gbcc.helper.SecurityContextHelper;
+import backend.website.gbcc.logic.account.dto.PatchCustomerManagerRequestDto;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationEntity;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationRepository;
+import backend.website.gbcc.logic.customeranalytics.CustomerAnalyticsService;
+import backend.website.gbcc.logic.customeranalytics.dto.CustomerAnalyticsResponseDto;
+import backend.website.gbcc.logic.customeranalytics.dto.UpdateCustomerAnalyticsRequestDto;
 import backend.website.gbcc.logic.referral.ReferralService;
+import backend.website.gbcc.logic.staff.StaffProfileService;
 import backend.website.gbcc.logic.account.dto.AccountResponseDto;
 import backend.website.gbcc.logic.account.dto.AccountSearchRequestDto;
 import backend.website.gbcc.logic.account.dto.ActivateCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.CreateAdminAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.RegisterCustomerAccountRequestDto;
 import backend.website.gbcc.logic.account.dto.UpdateCustomerAccountRequestDto;
+import backend.website.gbcc.logic.staff.dto.StaffProfileResponseDto;
+import backend.website.gbcc.logic.staff.dto.UpdateStaffProfileRequestDto;
 import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.AccountRole;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +42,9 @@ public class AccountServiceImpl implements AccountService {
     private final AccountMapper accountMapper;
     private final SecurityContextHelper securityContextHelper;
     private final ReferralService referralService;
+    private final StaffProfileService staffProfileService;
+    private final CustomerAnalyticsService customerAnalyticsService;
+    private final CrmOrganizationRepository crmOrganizationRepository;
 
     private final PasswordEncoder passwordEncoder;
 
@@ -45,15 +57,25 @@ public class AccountServiceImpl implements AccountService {
         }
 
         String passwordHash = passwordEncoder.encode(requestDto.password());
+        String firstName = StringUtils.hasText(requestDto.firstName())
+                ? requestDto.firstName().trim()
+                : normalizeRequired(requestDto.name(), "name");
+        String lastName = StringUtils.hasText(requestDto.lastName()) ? requestDto.lastName().trim() : "";
         CreateAdminAccountRequestDto normalizedRequest = new CreateAdminAccountRequestDto(
                 normalizeRequired(requestDto.name(), "name"),
                 normalizeEmail(requestDto.email()),
-                requestDto.password()
+                requestDto.password(),
+                StringUtils.hasText(requestDto.phone()) ? requestDto.phone().trim() : null,
+                firstName,
+                lastName,
+                StringUtils.hasText(requestDto.positionTitle()) ? requestDto.positionTitle().trim() : null
         );
 
         AccountEntity entity = accountMapper.toAdminEntity(normalizedRequest, passwordHash);
         AccountProfileNames.syncLegacyNameField(entity);
-        return accountMapper.toResponse(saveAccount(entity));
+        AccountEntity saved = saveAccount(entity);
+        staffProfileService.createForAdminAccount(saved, normalizedRequest.positionTitle());
+        return accountMapper.toResponse(saved);
     }
 
     @Override
@@ -219,6 +241,56 @@ public class AccountServiceImpl implements AccountService {
         ensureModeratorCanChangeBlockState(requester, account);
         account.setIsBlocked(Boolean.FALSE);
         accountRepository.save(account);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StaffProfileResponseDto getStaffProfile(UUID accountId) {
+        return staffProfileService.getByAccountId(accountId);
+    }
+
+    @Override
+    @Transactional
+    public StaffProfileResponseDto updateStaffProfile(UUID accountId, UpdateStaffProfileRequestDto requestDto) {
+        return staffProfileService.update(accountId, requestDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerAnalyticsResponseDto getCustomerAnalytics(UUID accountId) {
+        return customerAnalyticsService.getForCustomer(accountId);
+    }
+
+    @Override
+    @Transactional
+    public CustomerAnalyticsResponseDto updateCustomerAnalytics(
+            UUID accountId,
+            UpdateCustomerAnalyticsRequestDto requestDto
+    ) {
+        return customerAnalyticsService.updateManual(accountId, requestDto);
+    }
+
+    @Override
+    @Transactional
+    public AccountResponseDto patchCustomerManagerFields(UUID accountId, PatchCustomerManagerRequestDto requestDto) {
+        securityContextHelper.requireAdminOrOwner("Only admin or owner can update customer CRM links");
+        AccountEntity entity = findByIdOrThrow(accountId);
+        ensureCustomerOrThrow(entity);
+
+        if (requestDto.crmOrganizationId() != null) {
+            CrmOrganizationEntity org = crmOrganizationRepository.findById(requestDto.crmOrganizationId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "CRM organization not found"));
+            entity.setCrmOrganization(org);
+        }
+        if (requestDto.broughtByManagerId() != null) {
+            AccountEntity manager = findByIdOrThrow(requestDto.broughtByManagerId());
+            if (manager.getRole() != AccountRole.ADMIN && manager.getRole() != AccountRole.OWNER) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "broughtByManagerId must reference admin or owner");
+            }
+            entity.setBroughtByManager(manager);
+        }
+
+        return accountMapper.toResponse(saveAccount(entity));
     }
 
     private AccountEntity saveAccount(AccountEntity entity) {

@@ -3,8 +3,10 @@ package backend.website.gbcc.logic.crm.supply;
 import backend.website.gbcc.logic.crm.access.CrmAccessPolicy;
 import backend.website.gbcc.logic.crm.contract.CrmContractLineRepository;
 import backend.website.gbcc.logic.crm.organization.CrmOrganizationEntity;
+import backend.website.gbcc.logic.crm.organization.CrmOrganizationBranchRepository;
 import backend.website.gbcc.logic.crm.organization.CrmOrganizationRepository;
 import backend.website.gbcc.logic.crm.supply.dto.CreateCrmSupplyRequestDto;
+import backend.website.gbcc.logic.product.ProductRepository;
 import backend.website.gbcc.logic.crm.supply.dto.UpdateCrmSupplyRequestDto;
 import backend.website.gbcc.model.AccountPrincipal;
 import backend.website.gbcc.model.AccountRole;
@@ -40,7 +42,13 @@ class CrmSupplyServiceImplTest {
     private CrmOrganizationRepository organizationRepository;
 
     @Mock
+    private CrmOrganizationBranchRepository branchRepository;
+
+    @Mock
     private CrmContractLineRepository contractLineRepository;
+
+    @Mock
+    private ProductRepository productRepository;
 
     @Mock
     private CrmAccessPolicy crmAccessPolicy;
@@ -69,12 +77,17 @@ class CrmSupplyServiceImplTest {
         CreateCrmSupplyRequestDto dto = new CreateCrmSupplyRequestDto(
                 ORG_ID,
                 LocalDate.of(2026, 2, 1),
+                null,
                 "  pallets  ",
                 new BigDecimal("12.5"),
                 CrmSupplyStatus.PLANNED,
                 "  note  ",
+                null,
+                null,
                 55.75,
                 37.62,
+                null,
+                null,
                 null
         );
 
@@ -121,9 +134,14 @@ class CrmSupplyServiceImplTest {
 
         UpdateCrmSupplyRequestDto dto = new UpdateCrmSupplyRequestDto(
                 LocalDate.of(2026, 3, 3),
+                null,
                 " new desc ",
                 new BigDecimal("2"),
                 CrmSupplyStatus.IN_TRANSIT,
+                null,
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,

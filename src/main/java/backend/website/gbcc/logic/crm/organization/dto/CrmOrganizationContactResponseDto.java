@@ -10,6 +10,8 @@ public record CrmOrganizationContactResponseDto(
         UUID organizationId,
         String fullName,
         String department,
+        String positionTitle,
+        String socialLinks,
         String phone,
         String email,
         String extraNote

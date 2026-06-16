@@ -6,6 +6,7 @@ import java.util.UUID;
 
 public record OrderSearchRequestDto(
         UUID customerId,
-        OrderStatus status
+        OrderStatus status,
+        UUID crmOrganizationId
 ) {
 }

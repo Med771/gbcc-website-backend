@@ -14,6 +14,7 @@ public record CrmOrganizationResponseDto(
         String externalNumber,
         String legalAddress,
         String deliveryAddress,
+        String inn,
         String floorNote,
         String commentGeneral,
         String productTypesNote,

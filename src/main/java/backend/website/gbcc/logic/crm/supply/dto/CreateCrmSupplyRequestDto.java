@@ -6,17 +6,23 @@ import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.UUID;
 
 public record CreateCrmSupplyRequestDto(
         @NotNull UUID organizationId,
         @NotNull LocalDate supplyAt,
+        LocalTime supplyTime,
         @NotBlank String productDescription,
         BigDecimal quantity,
         @NotNull CrmSupplyStatus status,
         String commentText,
+        String deliveryAddress,
+        String objectName,
         Double deliveryLatitude,
         Double deliveryLongitude,
+        UUID branchId,
+        UUID productId,
         UUID contractLineId
 ) {
 }

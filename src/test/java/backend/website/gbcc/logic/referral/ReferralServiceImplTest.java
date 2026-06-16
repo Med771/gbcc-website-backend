@@ -10,6 +10,8 @@ import backend.website.gbcc.logic.referral.dto.ReferralApplyInviteCodeRequestDto
 import backend.website.gbcc.logic.referral.dto.ReferralClickRequestDto;
 import backend.website.gbcc.logic.referral.dto.ReferralMeResponseDto;
 import backend.website.gbcc.logic.referral.dto.ReferralWithdrawRequestDto;
+import backend.website.gbcc.model.OrderStatus;
+import backend.website.gbcc.model.ReferralClientType;
 import backend.website.gbcc.model.AccountRegistrationStatus;
 import backend.website.gbcc.model.AccountRole;
 import backend.website.gbcc.model.ReferralWithdrawalStatus;
@@ -65,7 +67,8 @@ class ReferralServiceImplTest {
 
     @BeforeEach
     void wireReferralDefaults() {
-        lenient().when(referralProperty.getCommissionPercent()).thenReturn(new BigDecimal("5"));
+        lenient().when(referralProperty.getCommissionPercentNewClient()).thenReturn(new BigDecimal("7"));
+        lenient().when(referralProperty.getCommissionPercentReturningClient()).thenReturn(new BigDecimal("2"));
         lenient().when(referralProperty.getMinWithdrawalAmount()).thenReturn(new BigDecimal("1000"));
         lenient().when(referralProperty.getLinkBaseUrl()).thenReturn("https://site.ru/ref");
     }
@@ -196,12 +199,15 @@ class ReferralServiceImplTest {
 
         when(referralCommissionRepository.existsByOrder_Id(ORDER_ID)).thenReturn(false);
         when(orderRepository.findByIdWithCustomerAndReferrer(ORDER_ID)).thenReturn(Optional.of(order));
+        when(orderRepository.countByCustomer_IdAndStatus(CUSTOMER_ID, OrderStatus.DELIVERED)).thenReturn(1L);
 
         referralService.onOrderDelivered(ORDER_ID);
 
         ArgumentCaptor<ReferralCommissionEntity> cap = ArgumentCaptor.forClass(ReferralCommissionEntity.class);
         verify(referralCommissionRepository).save(cap.capture());
-        assertThat(cap.getValue().getCommissionAmount()).isEqualByComparingTo(new BigDecimal("10.00"));
+        assertThat(cap.getValue().getCommissionAmount()).isEqualByComparingTo(new BigDecimal("14.00"));
+        assertThat(cap.getValue().getCommissionPercent()).isEqualByComparingTo(new BigDecimal("7"));
+        assertThat(cap.getValue().getClientType()).isEqualTo(ReferralClientType.NEW);
         assertThat(cap.getValue().getReferrerAccount()).isSameAs(referrer);
         assertThat(cap.getValue().getRefereeAccount()).isSameAs(buyer);
     }

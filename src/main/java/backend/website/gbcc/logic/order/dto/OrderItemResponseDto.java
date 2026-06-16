@@ -9,7 +9,6 @@ public record OrderItemResponseDto(
         String productBrand,
         String productClassName,
         String productSeriesName,
-        String productTypeName,
         Integer quantity,
         BigDecimal unitPrice,
         BigDecimal unitDiscountPercent,

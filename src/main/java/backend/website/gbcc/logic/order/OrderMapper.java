@@ -7,7 +7,10 @@ import backend.website.gbcc.logic.product.ProductEntity;
 import backend.website.gbcc.model.OrderPaymentMethodLabels;
 import backend.website.gbcc.model.OrderStatusLabels;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Component
@@ -18,10 +21,14 @@ public class OrderMapper {
             List<OrderItemEntity> items,
             List<OrderStatusHistoryEntity> history
     ) {
+        var customer = order.getCustomer();
+        BigDecimal deliveryFee = order.getDeliveryFee() != null ? order.getDeliveryFee() : BigDecimal.ZERO;
+        BigDecimal netTotal = order.getTotalDiscountedPrice().subtract(deliveryFee).setScale(2, RoundingMode.HALF_UP);
+
         return new OrderResponseDto(
                 order.getId(),
                 order.getDisplayNumber(),
-                order.getCustomer().getId(),
+                customer.getId(),
                 order.getStatus(),
                 OrderStatusLabels.ru(order.getStatus()),
                 order.getDeliveryAddress(),
@@ -33,11 +40,34 @@ public class OrderMapper {
                 order.getEstimatedDeliveryEnd(),
                 order.getTotalPrice(),
                 order.getTotalDiscountedPrice(),
+                deliveryFee,
+                netTotal,
+                resolveContactName(order, customer),
+                resolveContactPhone(order, customer),
+                resolveContactEmail(order, customer),
+                order.getManagerNotes(),
+                order.getCrmOrganization() != null ? order.getCrmOrganization().getId() : null,
+                order.getCrmOrganization() != null ? order.getCrmOrganization().getName() : null,
                 items.stream().map(this::toItemResponse).toList(),
                 history.stream().map(this::toHistoryResponse).toList(),
                 order.getCreatedAt(),
                 order.getUpdatedAt()
         );
+    }
+
+    private String resolveContactName(OrderEntity order, backend.website.gbcc.logic.account.AccountEntity customer) {
+        if (StringUtils.hasText(order.getContactName())) {
+            return order.getContactName();
+        }
+        return customer.getFirstName() + " " + customer.getLastName();
+    }
+
+    private String resolveContactPhone(OrderEntity order, backend.website.gbcc.logic.account.AccountEntity customer) {
+        return StringUtils.hasText(order.getContactPhone()) ? order.getContactPhone() : customer.getPhone();
+    }
+
+    private String resolveContactEmail(OrderEntity order, backend.website.gbcc.logic.account.AccountEntity customer) {
+        return StringUtils.hasText(order.getContactEmail()) ? order.getContactEmail() : customer.getEmail();
     }
 
     private OrderItemResponseDto toItemResponse(OrderItemEntity item) {
@@ -48,7 +78,6 @@ public class OrderMapper {
                 p.getBrand(),
                 p.getProductClass() != null ? p.getProductClass().getName() : null,
                 p.getProductSeries() != null ? p.getProductSeries().getName() : null,
-                p.getProductType() != null ? p.getProductType().getName() : null,
                 item.getQuantity(),
                 item.getUnitPrice(),
                 item.getUnitDiscountPercent(),

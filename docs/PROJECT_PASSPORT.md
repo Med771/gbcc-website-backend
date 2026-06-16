@@ -1,6 +1,6 @@
 # Паспорт проекта: GBCC Website Backend
 
-Документ фиксирует назначение, стек, архитектуру, контракты API, безопасность, данные, тесты и эксплуатацию backend-сервиса сайта GBCC. Версия описания: **2026-05** (сверяйте с `app.swagger.version` в `application.yaml` при изменении контракта).
+Документ фиксирует назначение, стек, архитектуру, контракты API, безопасность, данные, тесты и эксплуатацию backend-сервиса сайта GBCC. Версия описания: **2026-06** (сверяйте с `app.swagger.version` в `application.yaml` при изменении контракта).
 
 ---
 
@@ -56,7 +56,7 @@
 | `config` | `SecurityConfig`, `SwaggerConfig`, `JpaAuditingConfig`, `OpenApiConstants`, `config/property/*` |
 | `filter` | `JwtAuthenticationFilter` |
 | `handler` | `GlobalExceptionHandler` |
-| `logic/*` | Домены: `auth`, `account`, `product` (+ `productphoto`, `productseries`), `file`, `news`, `promotion`, `order`, `support`, `contactrequest`, `cooperationrequest`, `referral`, **`crm`** |
+| `logic/*` | Домены: `auth`, `account`, `product` (+ `productphoto`, `productseries`), `file`, `news`, `promotion`, `order`, `support`, `contactrequest`, `cooperationrequest`, `referral`, `customeranalytics`, `managercommission`, **`crm`** |
 | `model` | Роли, принципал, enum домена, DTO ошибок, конвертеры для JPA |
 | `resources` | `application.yaml`, `logback-spring.xml`, `db/migration/*.sql` |
 
@@ -103,9 +103,14 @@
 | GET | `/account/me` |
 | PUT | `/account/me` |
 | PUT | `/account/customer/{accountId}` |
+| PATCH | `/account/customer/{accountId}` |
+| GET | `/account/customer/{accountId}/analytics` |
+| PUT | `/account/customer/{accountId}/analytics` |
 | PATCH | `/account/customer/{accountId}/activate` |
 | DELETE | `/account/customer/{accountId}` |
 | GET | `/account/{accountId}` |
+| GET | `/account/{accountId}/staff-profile` |
+| PUT | `/account/{accountId}/staff-profile` |
 | GET | `/account` |
 | PATCH | `/account/{accountId}/block` |
 | PATCH | `/account/{accountId}/unblock` |
@@ -117,6 +122,8 @@
 | POST | `/product` |
 | PUT | `/product/{productId}` |
 | PATCH | `/product/{productId}` |
+| GET | `/product/stock` |
+| PATCH | `/product/{productId}/stock` |
 | GET | `/product/classes` |
 | GET | `/product/{productId}` |
 | GET | `/product/{productId}/similar` |
@@ -163,6 +170,7 @@
 | POST | `/order` |
 | GET | `/order/{orderId}` |
 | GET | `/order` |
+| PATCH | `/order/{orderId}` |
 | PATCH | `/order/{orderId}/status` |
 
 ### 5.8. Support — `/support/conversations`
@@ -216,7 +224,7 @@
 
 ### 5.12. CRM — `/crm`
 
-Сводно (полный список — Swagger): `/crm/organizations`, `/crm/interactions`, `/crm/tasks`, `/crm/leads`, `/crm/supplies`, `/crm/contracts` (+ строки графика), `/crm/map/pins` и CRUD объектов компании, `/crm/metrics/summary`. Заказы витрины остаются в **`/order`** (B2C); поставки CRM — в **`/crm/supplies`** (B2B).
+Сводно (полный список — Swagger): `/crm/organizations` (+ контакты, **филиалы**, история), `/crm/interactions` (фильтр `interactionType`), `/crm/tasks`, `/crm/leads`, `/crm/supplies` (+ **`/calendar`**), `/crm/contracts` (+ строки графика), `/crm/map/pins` и CRUD объектов компании, `/crm/metrics/summary`, **`/crm/manager-commissions`**. Заказы витрины — **`/order`** (B2C); поставки CRM — **`/crm/supplies`** (B2B).
 
 ---
 
@@ -244,7 +252,7 @@
 | `app.jwt.*` | Секрет, TTL access/refresh, `cookie-secure`, `cookie-same-site` |
 | `app.account.owner.*` | Учётные данные для инициализации owner (см. код старта) |
 | `app.file.bucket` | Каталог/«ведро» локального хранения файлов |
-| `app.referral.*` | База ссылок, процент комиссии, минимальная сумма вывода |
+| `app.referral.*` | База ссылок, **7% / 2%** комиссии (новый / возвратный клиент), минимальная сумма вывода |
 | `app.swagger.*` | Заголовок/описание OpenAPI, версия API для описания, servers |
 | `springdoc.*` | Пути `/v3/api-docs`, `/swagger-ui.html` |
 
@@ -297,6 +305,18 @@
 | V026 | `crm_task` |
 | V027 | `crm_lead` (+ привязка задач/взаимодействий к лиду) |
 | V028 | `crm_supply`, `crm_contract`, `crm_contract_line`, `crm_company_object`, FK `next_task_id` |
+| V029 | `site_analytics_events` |
+| V030 | `product_remove_type` — удаление `product_type`, новый unique на product |
+| V031 | `product_stock` — `stock_quantity` |
+| V032 | `order_extensions` — контакты, notes, delivery_fee, crm_organization_id |
+| V033 | `account_crm_link` |
+| V034 | `customer_analytics` |
+| V035 | `manager_commission`, реферал 2%/7% |
+| V036 | `crm_organization_inn_branches` |
+| V037 | `crm_contact_social` |
+| V038 | `crm_supply_calendar` |
+| V039 | `staff_profile` |
+| V040 | `crm_interaction_type` |
 
 ---
 

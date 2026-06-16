@@ -13,7 +13,6 @@ import backend.website.gbcc.logic.product.productphoto.ProductPhotoService;
 import backend.website.gbcc.logic.product.productseries.ProductSeriesEntity;
 import backend.website.gbcc.tool.ProductClassTool;
 import backend.website.gbcc.tool.ProductSeriesTool;
-import backend.website.gbcc.tool.ProductTypeTool;
 import backend.website.gbcc.model.AccountPrincipal;
 import backend.website.gbcc.model.AccountRole;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,9 +61,6 @@ class ProductServiceImplTest {
     private ProductSeriesTool productSeriesTool;
 
     @Mock
-    private ProductTypeTool productTypeTool;
-
-    @Mock
     private SecurityContextHelper securityContextHelper;
 
     @InjectMocks
@@ -82,8 +78,8 @@ class ProductServiceImplTest {
                 .thenThrow(new ResponseStatusException(FORBIDDEN, "Only admin or owner can create products"));
 
         CreateProductRequestDto dto = new CreateProductRequestDto(
-                "C", null, null, "B", null, null, null, null, null,
-                10, 10, 10, new BigDecimal("1"), new BigDecimal("10.00"), BigDecimal.ZERO, true
+                "C", null, "B", null, null, null, null, null,
+                10, 10, 10, new BigDecimal("1"), new BigDecimal("10.00"), BigDecimal.ZERO, true, null
         );
 
         assertThatThrownBy(() -> productService.create(dto))
@@ -108,8 +104,6 @@ class ProductServiceImplTest {
     @Test
     void search_shouldThrowBadRequest_whenMinPriceGreaterThanMaxPrice() {
         ProductSearchRequestDto request = new ProductSearchRequestDto(
-                null,
-                null,
                 null,
                 null,
                 null,
@@ -143,8 +137,6 @@ class ProductServiceImplTest {
                 null,
                 null,
                 null,
-                null,
-                null,
                 3000,
                 2000,
                 null
@@ -165,7 +157,6 @@ class ProductServiceImplTest {
         UpdateProductRequestDto request = new UpdateProductRequestDto(
                 "Class A",
                 null,
-                null,
                 "Brand A",
                 null,
                 null,
@@ -179,7 +170,8 @@ class ProductServiceImplTest {
                 new BigDecimal("1.000"),
                 new BigDecimal("10.00"),
                 new BigDecimal("0.00"),
-                true
+                true,
+                null
         );
 
         when(productRepository.findById(productId)).thenReturn(java.util.Optional.empty());
@@ -258,7 +250,6 @@ class ProductServiceImplTest {
         PatchProductRequestDto request = new PatchProductRequestDto(
                 "New Class",
                 "Series A",
-                null,
                 "New Brand",
                 "",
                 null,
@@ -272,7 +263,8 @@ class ProductServiceImplTest {
                 null,
                 new BigDecimal("99.99"),
                 new BigDecimal("15.00"),
-                false
+                false,
+                null
         );
 
         when(productRepository.findById(productId)).thenReturn(java.util.Optional.of(product));
@@ -282,10 +274,11 @@ class ProductServiceImplTest {
         when(productPhotoService.getPhotoIdsByProductIds(List.of(productId))).thenReturn(java.util.Collections.emptyMap());
         when(productMapper.toResponse(product, java.util.Collections.emptyList()))
                 .thenReturn(new backend.website.gbcc.logic.product.dto.ProductResponseDto(
-                        productId, "New Class", "Series A", null, "New Brand", null,
+                        productId, "New Class", "Series A", "New Brand", null,
                         null, null, 0, null, null, 0,
                         100, 100, 100, new BigDecimal("1.000"), new BigDecimal("99.99"),
-                        new BigDecimal("15.00"), new BigDecimal("84.99"),
+                        new BigDecimal("99.99"), new BigDecimal("84.99"), null, null,
+                        new BigDecimal("15.00"), new BigDecimal("84.99"), 0,
                         false, java.util.Collections.emptyList(), null, null
                 ));
 
@@ -311,7 +304,7 @@ class ProductServiceImplTest {
         when(productRepository.findById(productId)).thenReturn(java.util.Optional.of(product));
 
         PatchProductRequestDto request = new PatchProductRequestDto(
-                null, null, null, "   ", null, null, null, null, null, null,
+                null, null, "   ", null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null
         );
 
@@ -334,7 +327,7 @@ class ProductServiceImplTest {
 
         PatchProductRequestDto request = new PatchProductRequestDto(
                 null, null, null, null, null, null, null, null, null, null,
-                null, null, null, null, null, new BigDecimal("100.01"), null
+                null, null, null, null, new BigDecimal("100.01"), null, null
         );
 
         assertThatThrownBy(() -> productService.patch(productId, request))

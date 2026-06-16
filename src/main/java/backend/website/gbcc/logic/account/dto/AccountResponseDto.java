@@ -17,6 +17,8 @@ public record AccountResponseDto(
         AccountRole role,
         AccountRegistrationStatus registrationStatus,
         Boolean isBlocked,
+        UUID crmOrganizationId,
+        UUID broughtByManagerId,
         Instant createdAt,
         Instant updatedAt
 ) {

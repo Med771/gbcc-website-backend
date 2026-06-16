@@ -73,7 +73,8 @@ class ReferralControllerWebMvcTest {
                         0,
                         new BigDecimal("0.00"),
                         new BigDecimal("1000"),
-                        new BigDecimal("5"),
+                        new BigDecimal("7"),
+                        new BigDecimal("2"),
                         false,
                         null
                 ));

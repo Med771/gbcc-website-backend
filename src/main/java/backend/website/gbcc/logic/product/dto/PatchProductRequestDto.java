@@ -8,7 +8,6 @@ import java.math.BigDecimal;
 public record PatchProductRequestDto(
         String className,
         String seriesName,
-        String typeName,
         String brand,
         String description,
         String tagline,
@@ -24,10 +23,12 @@ public record PatchProductRequestDto(
         Integer lengthMm,
         @DecimalMin(value = "0.001", message = "weightKg must be greater than 0")
         BigDecimal weightKg,
-        @DecimalMin(value = "0.01", message = "price must be greater than 0")
+        @DecimalMin(value = "0.0", message = "price must be greater or equal to 0")
         BigDecimal price,
         @DecimalMin(value = "0.0", message = "discountPercent must be greater or equal to 0")
         BigDecimal discountPercent,
-        Boolean isActive
+        Boolean isActive,
+        @DecimalMin(value = "0", message = "stockQuantity must be greater or equal to 0")
+        Integer stockQuantity
 ) {
 }

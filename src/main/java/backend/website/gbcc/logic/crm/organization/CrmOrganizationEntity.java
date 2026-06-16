@@ -40,6 +40,9 @@ public class CrmOrganizationEntity extends BaseEntity {
     @Column(name = "delivery_address", columnDefinition = "text")
     private String deliveryAddress;
 
+    @Column(length = 12)
+    private String inn;
+
     @Column(name = "floor_note", length = 255)
     private String floorNote;
 

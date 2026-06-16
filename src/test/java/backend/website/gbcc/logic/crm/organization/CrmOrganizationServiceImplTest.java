@@ -43,6 +43,9 @@ class CrmOrganizationServiceImplTest {
     private CrmOrganizationContactHistoryRepository historyRepository;
 
     @Mock
+    private CrmOrganizationBranchRepository branchRepository;
+
+    @Mock
     private AccountRepository accountRepository;
 
     @Mock
@@ -77,6 +80,8 @@ class CrmOrganizationServiceImplTest {
         var res = organizationService.addContact(ORG_ID, new CreateCrmOrganizationContactRequestDto(
                 "  Ivan  ",
                 "  Sales  ",
+                null,
+                null,
                 "+7000",
                 " ivan@x.test ",
                 "  note  "
@@ -145,6 +150,8 @@ class CrmOrganizationServiceImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null
         ));
 
@@ -182,6 +189,8 @@ class CrmOrganizationServiceImplTest {
 
         organizationService.updateContact(ORG_ID, CONTACT_ID, new UpdateCrmOrganizationContactRequestDto(
                 "  Same  ",
+                null,
+                null,
                 null,
                 null,
                 null,

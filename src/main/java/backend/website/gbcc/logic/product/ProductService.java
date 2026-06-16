@@ -1,12 +1,14 @@
 package backend.website.gbcc.logic.product;
 
 import backend.website.gbcc.logic.product.dto.AttachProductPhotoRequestDto;
-import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
 import backend.website.gbcc.logic.product.dto.CreateProductRequestDto;
 import backend.website.gbcc.logic.product.dto.GroupedCatalogSearchResponseDto;
+import backend.website.gbcc.logic.product.dto.PatchProductRequestDto;
+import backend.website.gbcc.logic.product.dto.PatchProductStockRequestDto;
 import backend.website.gbcc.logic.product.dto.ProductClassResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductResponseDto;
 import backend.website.gbcc.logic.product.dto.ProductSearchRequestDto;
+import backend.website.gbcc.logic.product.dto.ProductStockResponseDto;
 import backend.website.gbcc.logic.product.dto.UpdateProductRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,6 +28,10 @@ public interface ProductService {
     ProductResponseDto patch(UUID productId, PatchProductRequestDto requestDto);
 
     Page<ProductResponseDto> search(ProductSearchRequestDto requestDto, Pageable pageable);
+
+    Page<ProductStockResponseDto> searchStock(ProductSearchRequestDto requestDto, Pageable pageable);
+
+    ProductStockResponseDto patchStock(UUID productId, PatchProductStockRequestDto requestDto);
 
     GroupedCatalogSearchResponseDto searchGrouped(String query, int categoryLimit, int productLimit, Boolean isActive);
 

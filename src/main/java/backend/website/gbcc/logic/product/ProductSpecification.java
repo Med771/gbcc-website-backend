@@ -16,9 +16,6 @@ public final class ProductSpecification {
     private ProductSpecification() {
     }
 
-    /**
-     * Та же категория (класс), другой товар — для блока «Похожие товары».
-     */
     public static Specification<ProductEntity> sameCategoryExcluding(UUID classId, UUID excludeProductId) {
         return (root, query, cb) -> cb.and(
                 cb.equal(root.get("productClass").get("id"), classId),
@@ -36,7 +33,6 @@ public final class ProductSpecification {
                 classNameLike(filter.className()),
                 classIdEquals(filter.classId()),
                 seriesFilter(filter),
-                typeFilter(filter),
                 brandLike(filter.brand()),
                 minPrice(filter.minPrice()),
                 maxPrice(filter.maxPrice()),
@@ -60,21 +56,6 @@ public final class ProductSpecification {
         return seriesNameLike(filter.seriesName());
     }
 
-    private static Specification<ProductEntity> typeFilter(ProductSearchRequestDto filter) {
-        List<UUID> ids = filter.typeIds();
-        if (ids != null && !ids.isEmpty()) {
-            return (root, q, cb) -> {
-                var join = root.join("productType", JoinType.INNER);
-                return join.get("id").in(ids);
-            };
-        }
-        return typeNameLike(filter.typeName());
-    }
-
-    /**
-     * Поиск по подстроке (без учёта регистра) в бренде, описании, названиях класса / серии / типа.
-     * Символы {@code %}, {@code _} и {@code \} в запросе удаляются, чтобы не ломать LIKE.
-     */
     private static Specification<ProductEntity> textQuery(String query) {
         return (root, q, cb) -> {
             String normalized = normalize(query);
@@ -102,13 +83,7 @@ public final class ProductSpecification {
                     cb.like(cb.lower(seriesJoin.get("name")), pattern)
             );
 
-            var typeJoin = root.join("productType", JoinType.LEFT);
-            var typePred = cb.and(
-                    cb.isNotNull(root.get("productType")),
-                    cb.like(cb.lower(typeJoin.get("name")), pattern)
-            );
-
-            return cb.or(brandPred, descPred, classPred, seriesPred, typePred);
+            return cb.or(brandPred, descPred, classPred, seriesPred);
         };
     }
 
@@ -140,19 +115,6 @@ public final class ProductSpecification {
             }
             return cb.like(
                     cb.lower(root.get("productSeries").get("name")),
-                    normalized + "%"
-            );
-        };
-    }
-
-    private static Specification<ProductEntity> typeNameLike(String typeName) {
-        return (root, query, cb) -> {
-            String normalized = normalize(typeName);
-            if (normalized == null) {
-                return null;
-            }
-            return cb.like(
-                    cb.lower(root.get("productType").get("name")),
                     normalized + "%"
             );
         };

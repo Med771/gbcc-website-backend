@@ -50,8 +50,6 @@ public class PromotionDiscountResolver {
                     && promotion.getScopeReferenceId().equals(product.getProductClass().getId());
             case SERIES -> product.getProductSeries() != null
                     && promotion.getScopeReferenceId().equals(product.getProductSeries().getId());
-            case PRODUCT_TYPE -> product.getProductType() != null
-                    && promotion.getScopeReferenceId().equals(product.getProductType().getId());
         };
     }
 

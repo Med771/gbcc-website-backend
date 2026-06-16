@@ -5,12 +5,15 @@ import backend.website.gbcc.logic.account.AccountRepository;
 import backend.website.gbcc.logic.contactrequest.ContactRequestRepository;
 import backend.website.gbcc.logic.cooperationrequest.CooperationRequestRepository;
 import backend.website.gbcc.logic.crm.access.CrmAccessPolicy;
+import backend.website.gbcc.logic.crm.organization.dto.CreateCrmOrganizationBranchRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.CreateCrmOrganizationContactRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.CreateCrmOrganizationRequestDto;
+import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationBranchResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationContactHistoryResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationContactResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmOrganizationResponseDto;
 import backend.website.gbcc.logic.crm.organization.dto.CrmReassignOrganizationRequestDto;
+import backend.website.gbcc.logic.crm.organization.dto.UpdateCrmOrganizationBranchRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.UpdateCrmOrganizationContactRequestDto;
 import backend.website.gbcc.logic.crm.organization.dto.UpdateCrmOrganizationRequestDto;
 import backend.website.gbcc.model.AccountPrincipal;
@@ -36,6 +39,7 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
     private final CrmOrganizationRepository organizationRepository;
     private final CrmOrganizationContactRepository contactRepository;
     private final CrmOrganizationContactHistoryRepository historyRepository;
+    private final CrmOrganizationBranchRepository branchRepository;
     private final AccountRepository accountRepository;
     private final ContactRequestRepository contactRequestRepository;
     private final CooperationRequestRepository cooperationRequestRepository;
@@ -47,7 +51,7 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
         AccountPrincipal principal = crmAccessPolicy.requireCrmUser();
         CrmOrganizationEntity entity = new CrmOrganizationEntity();
         applyOrgFields(entity, dto.name(), dto.externalNumber(), dto.legalAddress(), dto.deliveryAddress(),
-                dto.floorNote(), dto.commentGeneral(), dto.productTypesNote(), dto.supplyVolumeNote(),
+                dto.inn(), dto.floorNote(), dto.commentGeneral(), dto.productTypesNote(), dto.supplyVolumeNote(),
                 dto.supplyScheduleNote(), dto.cooperationUntil(), dto.clientStatus(), dto.latitude(), dto.longitude());
 
         if (principal.role() == AccountRole.ADMIN) {
@@ -77,6 +81,7 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
         }
 
         CrmOrganizationEntity saved = organizationRepository.save(entity);
+        createDefaultBranchIfNeeded(saved, dto.deliveryAddress());
         return toResponse(saved);
     }
 
@@ -88,7 +93,7 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
         crmAccessPolicy.assertCanModifyOrganization(assignedId(entity));
 
         applyOrgFields(entity, dto.name(), dto.externalNumber(), dto.legalAddress(), dto.deliveryAddress(),
-                dto.floorNote(), dto.commentGeneral(), dto.productTypesNote(), dto.supplyVolumeNote(),
+                dto.inn(), dto.floorNote(), dto.commentGeneral(), dto.productTypesNote(), dto.supplyVolumeNote(),
                 dto.supplyScheduleNote(), dto.cooperationUntil(), dto.clientStatus(), dto.latitude(), dto.longitude());
         return toResponse(organizationRepository.save(entity));
     }
@@ -140,6 +145,8 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
         c.setOrganization(org);
         c.setFullName(trimToNull(dto.fullName()));
         c.setDepartment(trimToNull(dto.department()));
+        c.setPositionTitle(trimToNull(dto.positionTitle()));
+        c.setSocialLinks(trimToNull(dto.socialLinks()));
         c.setPhone(trimToNull(dto.phone()));
         c.setEmail(trimToNull(dto.email()));
         c.setExtraNote(trimToNull(dto.extraNote()));
@@ -161,6 +168,8 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
         String prev = snapshot(c);
         c.setFullName(trimToNull(dto.fullName()));
         c.setDepartment(trimToNull(dto.department()));
+        c.setPositionTitle(trimToNull(dto.positionTitle()));
+        c.setSocialLinks(trimToNull(dto.socialLinks()));
         c.setPhone(trimToNull(dto.phone()));
         c.setEmail(trimToNull(dto.email()));
         c.setExtraNote(trimToNull(dto.extraNote()));
@@ -220,6 +229,103 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<CrmOrganizationBranchResponseDto> listBranches(UUID organizationId) {
+        crmAccessPolicy.requireCrmUser();
+        CrmOrganizationEntity org = findOrg(organizationId);
+        crmAccessPolicy.assertCanReadOrganization(assignedId(org));
+        return branchRepository.findByOrganization_IdOrderByIsDefaultDescCreatedAtAsc(organizationId).stream()
+                .map(this::toBranchResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public CrmOrganizationBranchResponseDto createBranch(UUID organizationId, CreateCrmOrganizationBranchRequestDto dto) {
+        crmAccessPolicy.requireCrmUser();
+        CrmOrganizationEntity org = findOrg(organizationId);
+        crmAccessPolicy.assertCanModifyOrganization(assignedId(org));
+
+        CrmOrganizationBranchEntity branch = new CrmOrganizationBranchEntity();
+        branch.setOrganization(org);
+        branch.setName(dto.name().trim());
+        branch.setAddress(dto.address().trim());
+        boolean isDefault = Boolean.TRUE.equals(dto.isDefault())
+                || branchRepository.countByOrganization_Id(organizationId) == 0;
+        branch.setIsDefault(isDefault);
+        if (isDefault) {
+            clearDefaultBranch(org);
+        }
+        return toBranchResponse(branchRepository.save(branch));
+    }
+
+    @Override
+    @Transactional
+    public CrmOrganizationBranchResponseDto updateBranch(UUID organizationId, UUID branchId,
+                                                         UpdateCrmOrganizationBranchRequestDto dto) {
+        crmAccessPolicy.requireCrmUser();
+        CrmOrganizationEntity org = findOrg(organizationId);
+        crmAccessPolicy.assertCanModifyOrganization(assignedId(org));
+        CrmOrganizationBranchEntity branch = findBranch(organizationId, branchId);
+
+        branch.setName(dto.name().trim());
+        branch.setAddress(dto.address().trim());
+        if (Boolean.TRUE.equals(dto.isDefault())) {
+            clearDefaultBranch(org);
+            branch.setIsDefault(true);
+        } else if (Boolean.FALSE.equals(dto.isDefault()) && Boolean.TRUE.equals(branch.getIsDefault())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot unset the default branch; set another as default first");
+        }
+        return toBranchResponse(branchRepository.save(branch));
+    }
+
+    @Override
+    @Transactional
+    public void deleteBranch(UUID organizationId, UUID branchId) {
+        crmAccessPolicy.requireCrmUser();
+        CrmOrganizationEntity org = findOrg(organizationId);
+        crmAccessPolicy.assertCanModifyOrganization(assignedId(org));
+        CrmOrganizationBranchEntity branch = findBranch(organizationId, branchId);
+        if (Boolean.TRUE.equals(branch.getIsDefault()) && branchRepository.countByOrganization_Id(organizationId) > 1) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot delete default branch while other branches exist");
+        }
+        branchRepository.delete(branch);
+    }
+
+    private CrmOrganizationBranchEntity findBranch(UUID organizationId, UUID branchId) {
+        CrmOrganizationBranchEntity branch = branchRepository.findById(branchId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Branch not found"));
+        if (!branch.getOrganization().getId().equals(organizationId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Branch not found");
+        }
+        return branch;
+    }
+
+    private void clearDefaultBranch(CrmOrganizationEntity org) {
+        branchRepository.findByOrganization_IdOrderByIsDefaultDescCreatedAtAsc(org.getId()).stream()
+                .filter(b -> Boolean.TRUE.equals(b.getIsDefault()))
+                .forEach(b -> {
+                    b.setIsDefault(false);
+                    branchRepository.save(b);
+                });
+    }
+
+    private void createDefaultBranchIfNeeded(CrmOrganizationEntity org, String deliveryAddress) {
+        if (!StringUtils.hasText(deliveryAddress)) {
+            return;
+        }
+        if (branchRepository.countByOrganization_Id(org.getId()) > 0) {
+            return;
+        }
+        CrmOrganizationBranchEntity branch = new CrmOrganizationBranchEntity();
+        branch.setOrganization(org);
+        branch.setName("Основной");
+        branch.setAddress(deliveryAddress.trim());
+        branch.setIsDefault(true);
+        branchRepository.save(branch);
+    }
+
     private CrmOrganizationEntity findOrg(UUID id) {
         return organizationRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Organization not found"));
@@ -230,14 +336,15 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
     }
 
     private void applyOrgFields(CrmOrganizationEntity entity, String name, String externalNumber,
-                                String legalAddress, String deliveryAddress, String floorNote, String commentGeneral,
-                                String productTypesNote, String supplyVolumeNote, String supplyScheduleNote,
-                                java.time.LocalDate cooperationUntil, CrmClientStatus clientStatus,
-                                Double latitude, Double longitude) {
+                                String legalAddress, String deliveryAddress, String inn, String floorNote,
+                                String commentGeneral, String productTypesNote, String supplyVolumeNote,
+                                String supplyScheduleNote, java.time.LocalDate cooperationUntil,
+                                CrmClientStatus clientStatus, Double latitude, Double longitude) {
         entity.setName(name.trim());
         entity.setExternalNumber(trimToNull(externalNumber));
         entity.setLegalAddress(trimToNull(legalAddress));
         entity.setDeliveryAddress(trimToNull(deliveryAddress));
+        entity.setInn(trimToNull(inn));
         entity.setFloorNote(trimToNull(floorNote));
         entity.setCommentGeneral(trimToNull(commentGeneral));
         entity.setProductTypesNote(trimToNull(productTypesNote));
@@ -260,6 +367,8 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
     private String snapshot(CrmOrganizationContactEntity c) {
         return "fullName=" + n(c.getFullName())
                 + ";department=" + n(c.getDepartment())
+                + ";positionTitle=" + n(c.getPositionTitle())
+                + ";socialLinks=" + n(c.getSocialLinks())
                 + ";phone=" + n(c.getPhone())
                 + ";email=" + n(c.getEmail())
                 + ";extraNote=" + n(c.getExtraNote());
@@ -279,6 +388,7 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
                 e.getExternalNumber(),
                 e.getLegalAddress(),
                 e.getDeliveryAddress(),
+                e.getInn(),
                 e.getFloorNote(),
                 e.getCommentGeneral(),
                 e.getProductTypesNote(),
@@ -303,9 +413,23 @@ public class CrmOrganizationServiceImpl implements CrmOrganizationService {
                 c.getOrganization().getId(),
                 c.getFullName(),
                 c.getDepartment(),
+                c.getPositionTitle(),
+                c.getSocialLinks(),
                 c.getPhone(),
                 c.getEmail(),
                 c.getExtraNote()
+        );
+    }
+
+    private CrmOrganizationBranchResponseDto toBranchResponse(CrmOrganizationBranchEntity b) {
+        return new CrmOrganizationBranchResponseDto(
+                b.getId(),
+                b.getCreatedAt(),
+                b.getUpdatedAt(),
+                b.getOrganization().getId(),
+                b.getName(),
+                b.getAddress(),
+                Boolean.TRUE.equals(b.getIsDefault())
         );
     }
 

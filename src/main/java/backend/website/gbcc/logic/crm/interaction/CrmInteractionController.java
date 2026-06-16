@@ -1,6 +1,7 @@
 package backend.website.gbcc.logic.crm.interaction;
 
 import backend.website.gbcc.config.OpenApiConstants;
+import backend.website.gbcc.logic.crm.interaction.CrmInteractionType;
 import backend.website.gbcc.logic.crm.interaction.dto.CreateCrmInteractionRequestDto;
 import backend.website.gbcc.logic.crm.interaction.dto.CrmInteractionResponseDto;
 import backend.website.gbcc.logic.crm.interaction.dto.UpdateCrmInteractionRequestDto;
@@ -77,8 +78,10 @@ public class CrmInteractionController {
             @RequestParam(required = false) Instant occurredFrom,
             @RequestParam(required = false) Instant occurredTo,
             @RequestParam(required = false) String resultFragment,
+            @RequestParam(required = false) CrmInteractionType interactionType,
             @Parameter(hidden = true) Pageable pageable
     ) {
-        return interactionService.search(organizationId, leadId, authorId, occurredFrom, occurredTo, resultFragment, pageable);
+        return interactionService.search(organizationId, leadId, authorId, occurredFrom, occurredTo, resultFragment,
+                interactionType, pageable);
     }
 }

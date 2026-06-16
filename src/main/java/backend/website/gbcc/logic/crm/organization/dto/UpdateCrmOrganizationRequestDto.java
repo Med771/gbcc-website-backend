@@ -13,6 +13,7 @@ public record UpdateCrmOrganizationRequestDto(
         @Size(max = 128) String externalNumber,
         String legalAddress,
         String deliveryAddress,
+        @Size(max = 12) String inn,
         @Size(max = 255) String floorNote,
         String commentGeneral,
         String productTypesNote,

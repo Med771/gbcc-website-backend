@@ -12,6 +12,10 @@ public record CreateAdminAccountRequestDto(
         String email,
         @NotBlank(message = "password is required")
         @Size(min = 8, message = "password must contain at least 8 characters")
-        String password
+        String password,
+        @Size(max = 64) String phone,
+        @Size(max = 255) String firstName,
+        @Size(max = 255) String lastName,
+        @Size(max = 255) String positionTitle
 ) {
 }
